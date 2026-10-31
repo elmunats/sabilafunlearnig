@@ -1,0 +1,24 @@
+{
+    "name": "Sabila Fun Learning",
+    "short_name": "Sabila",
+    "description": "Aplikasi Laporan Harian, Perkembangan Bulanan, Foto Kegiatan, dan Pembayaran Bimbel Calistung & Pracalis Sabila Fun Learning.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#F8FAFC",
+    "theme_color": "#2E6FBE",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/logo-sabiladunlearning.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/logo-sabiladunlearning.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
