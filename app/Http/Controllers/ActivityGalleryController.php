@@ -29,7 +29,7 @@ class ActivityGalleryController extends Controller
         }
 
         $selectedCategory = $request->query('category', 'Semua');
-        $categories = ['Semua', 'Calistung', 'Pracalis', 'Kegiatan Lain'];
+        $categories = ['Semua', 'Membaca', 'Menulis', 'Berhitung', 'Mengaji', 'Calistung', 'Pracalis', 'Kegiatan Lain'];
         if (! in_array($selectedCategory, $categories, true)) {
             $selectedCategory = 'Semua';
         }
@@ -80,7 +80,7 @@ class ActivityGalleryController extends Controller
         $validated = $request->validate([
             'child_id' => ['required', 'exists:children,id'],
             'report_date' => ['required', 'date'],
-            'category' => ['required', 'in:Calistung,Pracalis,Kegiatan Lain'],
+            'category' => ['required', 'in:Membaca,Menulis,Berhitung,Mengaji,Calistung,Pracalis,Kegiatan Lain'],
             'caption' => ['required', 'string', 'max:200'],
             'taken_time' => ['nullable', 'string', 'max:20'],
             'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:5120'],

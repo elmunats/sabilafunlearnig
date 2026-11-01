@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityPhoto;
 use App\Models\Child;
+use App\Models\ClassGroup;
 use App\Models\Invoice;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,11 @@ class DashboardController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+
+        if (! $user || $request->boolean('landing')) {
+            return $this->renderLandingPage();
+        }
+
         $children = Child::accessibleBy($user)->orderBy('id')->get();
 
         $activeChildId = (int) $request->session()->get('active_child_id');
@@ -68,6 +74,32 @@ class DashboardController extends Controller
             'latestActivity' => $latestActivity,
             'latestReportId' => $latestReportId,
             'currentInvoice' => $currentInvoice,
+        ]);
+    }
+
+    public function renderLandingPage(): Response
+    {
+        $classGroups = \Illuminate\Support\Facades\Schema::hasTable('class_groups')
+            ? ClassGroup::withCount(['approvedChildren as approved_count'])
+                ->with('teachers:id,name')
+                ->orderBy('id')
+                ->get()
+                ->map(fn (ClassGroup $cg) => [
+                    'id' => $cg->id,
+                    'name' => $cg->name,
+                    'category' => $cg->category,
+                    'quota' => $cg->quota,
+                    'approved_count' => $cg->approved_count,
+                    'remaining_quota' => max(0, $cg->quota - $cg->approved_count),
+                    'schedule' => $cg->schedule,
+                    'teacher_names' => $cg->teachers->pluck('name')->values()->all(),
+                ])
+                ->values()
+                ->all()
+            : [];
+
+        return Inertia::render('Landing', [
+            'publicClasses' => $classGroups,
         ]);
     }
 

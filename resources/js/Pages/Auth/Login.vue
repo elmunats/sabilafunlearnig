@@ -1,10 +1,26 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+
+const props = defineProps({
+    availableClasses: {
+        type: Array,
+        default: () => ['Kelompok Calistung A', 'Kelompok Calistung B', 'Kelompok Pracalis A', 'Kelompok Mengaji Iqra'],
+    },
+    openRegister: {
+        type: Boolean,
+        default: false,
+    },
+    preselectedGroup: {
+        type: String,
+        default: '',
+    },
+});
 
 const showPassword = ref(false);
+const showRegisterPassword = ref(false);
 const showForgotModal = ref(false);
-const showRegisterModal = ref(false);
+const showRegisterModal = ref(props.openRegister);
 
 const page = usePage();
 const flashSuccess = computed(() => page.props.flash?.success);
@@ -23,11 +39,31 @@ const registerForm = useForm({
     name: '',
     email: '',
     phone: '',
+    address: '',
     password: '',
     child_name: '',
     child_birth_date: '2022-05-10',
-    child_group: 'Kelompok Calistung A',
+    child_gender: 'laki-laki',
+    child_group: props.preselectedGroup || props.availableClasses[0] || 'Kelompok Calistung A',
+    child_photo: null,
 });
+
+const childPhotoPreview = ref(null);
+
+function handleChildPhoto(e) {
+    const file = e.target.files[0];
+    if (file) {
+        registerForm.child_photo = file;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            childPhotoPreview.value = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        registerForm.child_photo = null;
+        childPhotoPreview.value = null;
+    }
+}
 
 function submitLogin() {
     loginForm.post('/login');
@@ -44,6 +80,7 @@ function submitForgot() {
 
 function submitRegister() {
     registerForm.post('/register', {
+        forceFormData: true,
         onSuccess: () => {
             showRegisterModal.value = false;
         },
@@ -100,17 +137,23 @@ function submitRegister() {
                     </div>
 
                     <p class="text-xs text-slate-600 mt-2 max-w-xs leading-relaxed">
-                        Portal Laporan Harian, Perkembangan Bulanan, Dokumentasi Kelas, dan SPP Bimbel Calistung &amp; Pracalis.
+                        Portal Laporan Harian, Perkembangan Bulanan, Dokumentasi Kelas, dan SPP Bimbel Membaca, Menulis, Berhitung &amp; Mengaji.
                     </p>
                 </div>
 
                 <!-- Right / Form Column -->
                 <div class="md:col-span-7 p-6 sm:p-8 flex flex-col justify-center">
                     <div>
-                        <div class="flex items-center justify-center md:justify-start mb-4">
+                        <div class="flex items-center justify-between mb-4">
                             <h1 class="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">
                                 Masuk ke Akun
                             </h1>
+                            <Link
+                                href="/"
+                                class="inline-flex items-center gap-1 text-xs font-bold text-[#2E6FBE] hover:underline py-1.5 px-2.5 rounded-xl bg-[#EBF3FE]/70"
+                            >
+                                <span>&larr; Halaman Utama</span>
+                            </Link>
                         </div>
 
                         <div
@@ -281,111 +324,238 @@ function submitRegister() {
             aria-modal="true"
             aria-labelledby="register-modal-title"
         >
-            <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl my-8">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 id="register-modal-title" class="text-base font-bold text-slate-800">Daftar Akun Orang Tua</h2>
+            <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-xl my-6 max-h-[92vh] overflow-y-auto">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                    <div>
+                        <h2 id="register-modal-title" class="text-base sm:text-lg font-bold text-slate-800">
+                            Pendaftaran Murid Baru
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Lengkapi data orang tua dan calon murid</p>
+                    </div>
                     <button
                         type="button"
                         @click="showRegisterModal = false"
-                        class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100"
+                        class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 cursor-pointer"
                         aria-label="Tutup dialog"
                     >
                         ✕
                     </button>
                 </div>
-                <form @submit.prevent="submitRegister" class="space-y-2.5 text-xs">
-                    <div>
-                        <label class="font-semibold text-slate-700 block mb-1">Nama Orang Tua (Bunda/Ayah)</label>
-                        <input
-                            v-model="registerForm.name"
-                            type="text"
-                            required
-                            placeholder="Nama lengkap orang tua"
-                            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
-                        />
-                        <p v-if="registerForm.errors.name" class="text-rose-600 mt-0.5">{{ registerForm.errors.name }}</p>
-                    </div>
-                    <div>
-                        <label class="font-semibold text-slate-700 block mb-1">Email</label>
-                        <input
-                            v-model="registerForm.email"
-                            type="email"
-                            required
-                            placeholder="email@example.com"
-                            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
-                        />
-                        <p v-if="registerForm.errors.email" class="text-rose-600 mt-0.5">{{ registerForm.errors.email }}</p>
-                    </div>
-                    <div>
-                        <label class="font-semibold text-slate-700 block mb-1">Nomor HP / WhatsApp</label>
-                        <input
-                            v-model="registerForm.phone"
-                            type="text"
-                            required
-                            placeholder="0812 3456 7890"
-                            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
-                        />
-                        <p v-if="registerForm.errors.phone" class="text-rose-600 mt-0.5">{{ registerForm.errors.phone }}</p>
-                    </div>
-                    <div>
-                        <label class="font-semibold text-slate-700 block mb-1">Kata Sandi</label>
-                        <input
-                            v-model="registerForm.password"
-                            type="password"
-                            required
-                            minlength="6"
-                            placeholder="Minimal 6 karakter"
-                            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
-                        />
-                    </div>
-                    <hr class="my-2 border-slate-100" />
-                    <div>
-                        <label class="font-semibold text-slate-700 block mb-1">Nama Anak</label>
-                        <input
-                            v-model="registerForm.child_name"
-                            type="text"
-                            required
-                            placeholder="Nama panggilan / lengkap anak"
-                            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
-                        />
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
+
+                <form @submit.prevent="submitRegister" class="space-y-4 text-xs">
+                    <!-- SECTION 1: DATA ORANG TUA -->
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2 pb-1 border-b border-slate-100">
+                            <span class="w-5 h-5 rounded-full bg-[#EBF3FE] text-[#2E6FBE] font-bold text-[11px] flex items-center justify-center">1</span>
+                            <span class="font-bold text-slate-800 text-xs">Data Orang Tua / Wali</span>
+                        </div>
+
                         <div>
-                            <label class="font-semibold text-slate-700 block mb-1">Tanggal Lahir</label>
+                            <label class="font-semibold text-slate-700 block mb-1">Nama Orang Tua (Bunda / Ayah) <span class="text-rose-500">*</span></label>
                             <input
-                                v-model="registerForm.child_birth_date"
-                                type="date"
+                                v-model="registerForm.name"
+                                type="text"
                                 required
-                                class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs"
+                                placeholder="Nama lengkap orang tua"
+                                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#2E6FBE]"
                             />
+                            <p v-if="registerForm.errors.name" class="text-rose-600 mt-0.5">{{ registerForm.errors.name }}</p>
                         </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="font-semibold text-slate-700 block mb-1">Email <span class="text-rose-500">*</span></label>
+                                <input
+                                    v-model="registerForm.email"
+                                    type="email"
+                                    required
+                                    placeholder="email@example.com"
+                                    class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#2E6FBE]"
+                                />
+                                <p v-if="registerForm.errors.email" class="text-rose-600 mt-0.5">{{ registerForm.errors.email }}</p>
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-700 block mb-1">Nomor WhatsApp <span class="text-rose-500">*</span></label>
+                                <input
+                                    v-model="registerForm.phone"
+                                    type="text"
+                                    required
+                                    placeholder="0812 3456 7890"
+                                    class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#2E6FBE]"
+                                />
+                                <p v-if="registerForm.errors.phone" class="text-rose-600 mt-0.5">{{ registerForm.errors.phone }}</p>
+                            </div>
+                        </div>
+
                         <div>
-                            <label class="font-semibold text-slate-700 block mb-1">Kelompok</label>
-                            <select
-                                v-model="registerForm.child_group"
-                                class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs bg-white"
-                            >
-                                <option value="Kelompok Calistung A">Calistung A</option>
-                                <option value="Kelompok Calistung B">Calistung B</option>
-                                <option value="Kelompok Pracalis A">Pracalis A</option>
-                                <option value="Kelompok Pracalis B">Pracalis B</option>
-                            </select>
+                            <label class="font-semibold text-slate-700 block mb-1">Alamat Rumah Tempat Tinggal <span class="text-rose-500">*</span></label>
+                            <textarea
+                                v-model="registerForm.address"
+                                required
+                                rows="2"
+                                placeholder="Contoh: Jl. Melati Indah No. 12, RT 02 / RW 05, Kel. Sukamaju"
+                                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#2E6FBE] resize-none"
+                            ></textarea>
+                            <p v-if="registerForm.errors.address" class="text-rose-600 mt-0.5">{{ registerForm.errors.address }}</p>
+                        </div>
+
+                        <div>
+                            <label class="font-semibold text-slate-700 block mb-1">Kata Sandi Akun <span class="text-rose-500">*</span></label>
+                            <div class="relative flex items-center">
+                                <input
+                                    v-model="registerForm.password"
+                                    :type="showRegisterPassword ? 'text' : 'password'"
+                                    required
+                                    minlength="6"
+                                    placeholder="Minimal 6 karakter"
+                                    class="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#2E6FBE]"
+                                />
+                                <button
+                                    type="button"
+                                    @click="showRegisterPassword = !showRegisterPassword"
+                                    class="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                                    :aria-label="showRegisterPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'"
+                                >
+                                    <svg v-if="!showRegisterPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.5 10.677a2 2 0 002.823 2.823M7.362 7.561C5.68 8.74 4.279 10.42 3 12c1.889 2.991 5.282 6 9 6 1.55 0 3.043-.523 4.395-1.353m1.929-1.976C19.521 13.588 20.43 12.29 21 12c-1.889-2.991-5.282-6-9-6-.89 0-1.765.146-2.6.412" />
+                                    </svg>
+                                    <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <p v-if="registerForm.errors.password" class="text-rose-600 mt-0.5">{{ registerForm.errors.password }}</p>
                         </div>
                     </div>
-                    <div class="flex justify-end gap-2 pt-2">
+
+                    <!-- SECTION 2: DATA CALON MURID -->
+                    <div class="space-y-3 pt-2">
+                        <div class="flex items-center gap-2 pb-1 border-b border-slate-100">
+                            <span class="w-5 h-5 rounded-full bg-[#FFF3E0] text-[#D97706] font-bold text-[11px] flex items-center justify-center">2</span>
+                            <span class="font-bold text-slate-800 text-xs">Data Calon Murid</span>
+                        </div>
+
+                        <div>
+                            <label class="font-semibold text-slate-700 block mb-1">Nama Calon Murid <span class="text-rose-500">*</span></label>
+                            <input
+                                v-model="registerForm.child_name"
+                                type="text"
+                                required
+                                placeholder="Nama lengkap / panggilan anak"
+                                class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#2E6FBE]"
+                            />
+                            <p v-if="registerForm.errors.child_name" class="text-rose-600 mt-0.5">{{ registerForm.errors.child_name }}</p>
+                        </div>
+
+                        <!-- Jenis Kelamin Anak (Laki-laki / Perempuan) -->
+                        <div>
+                            <label class="font-semibold text-slate-700 block mb-1.5">Jenis Kelamin Anak <span class="text-rose-500">*</span></label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label
+                                    :class="[
+                                        'flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border-2 cursor-pointer transition text-xs font-bold',
+                                        registerForm.child_gender === 'laki-laki'
+                                            ? 'border-[#0077C2] bg-[#F0F7FF] text-[#005E9C]'
+                                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                    ]"
+                                >
+                                    <input
+                                        type="radio"
+                                        value="laki-laki"
+                                        v-model="registerForm.child_gender"
+                                        class="sr-only"
+                                    />
+                                    <span>👦 Laki-laki</span>
+                                </label>
+                                <label
+                                    :class="[
+                                        'flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border-2 cursor-pointer transition text-xs font-bold',
+                                        registerForm.child_gender === 'perempuan'
+                                            ? 'border-[#EC4899] bg-[#FDF2F8] text-[#BE185D]'
+                                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                    ]"
+                                >
+                                    <input
+                                        type="radio"
+                                        value="perempuan"
+                                        v-model="registerForm.child_gender"
+                                        class="sr-only"
+                                    />
+                                    <span>👧 Perempuan</span>
+                                </label>
+                            </div>
+                            <p v-if="registerForm.errors.child_gender" class="text-rose-600 mt-0.5">{{ registerForm.errors.child_gender }}</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="font-semibold text-slate-700 block mb-1">Tanggal Lahir <span class="text-rose-500">*</span></label>
+                                <input
+                                    v-model="registerForm.child_birth_date"
+                                    type="date"
+                                    required
+                                    class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs focus:border-[#2E6FBE]"
+                                />
+                                <p v-if="registerForm.errors.child_birth_date" class="text-rose-600 mt-0.5">{{ registerForm.errors.child_birth_date }}</p>
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-700 block mb-1">Pilihan Kelompok <span class="text-rose-500">*</span></label>
+                                <select
+                                    v-model="registerForm.child_group"
+                                    class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:border-[#2E6FBE]"
+                                >
+                                    <option v-for="cls in availableClasses" :key="cls" :value="cls">
+                                        {{ cls }}
+                                    </option>
+                                </select>
+                                <p v-if="registerForm.errors.child_group" class="text-rose-600 mt-0.5">{{ registerForm.errors.child_group }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Upload Foto Anak -->
+                        <div>
+                            <label class="font-semibold text-slate-700 block mb-1">Foto Calon Murid (Opsional)</label>
+                            <div class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/60">
+                                <div class="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200 shrink-0 flex items-center justify-center">
+                                    <img
+                                        v-if="childPhotoPreview"
+                                        :src="childPhotoPreview"
+                                        alt="Pratinjau foto anak"
+                                        class="w-full h-full object-cover"
+                                    />
+                                    <span v-else class="text-lg">
+                                        {{ registerForm.child_gender === 'laki-laki' ? '👦' : '👧' }}
+                                    </span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                                        @change="handleChildPhoto"
+                                        class="w-full text-xs text-slate-600 file:mr-2.5 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:bg-[#EBF3FE] file:text-[#0077C2] file:font-bold file:text-xs cursor-pointer"
+                                    />
+                                    <p class="text-[10px] text-slate-500 mt-0.5">Format: JPG, PNG, atau WebP (maks. 4MB)</p>
+                                </div>
+                            </div>
+                            <p v-if="registerForm.errors.child_photo" class="text-rose-600 mt-0.5">{{ registerForm.errors.child_photo }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
                         <button
                             type="button"
                             @click="showRegisterModal = false"
-                            class="px-4 py-2.5 rounded-xl border border-slate-200 font-semibold text-slate-600"
+                            class="px-4 py-2.5 rounded-xl border border-slate-200 font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
                         >
                             Batal
                         </button>
                         <button
                             type="submit"
                             :disabled="registerForm.processing"
-                            class="px-4 py-2.5 rounded-xl bg-[#2E6FBE] text-white font-bold"
+                            class="px-5 py-2.5 rounded-xl bg-[#F28C18] hover:bg-[#D97706] text-slate-950 font-extrabold cursor-pointer transition"
                         >
-                            Daftar Sekarang
+                            {{ registerForm.processing ? 'Memproses...' : 'Daftar Sekarang' }}
                         </button>
                     </div>
                 </form>

@@ -12,6 +12,10 @@ use App\Http\Controllers\PrivateMediaController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
+// Public Landing Page / Home & Dashboard Entry
+Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/beranda-publik', [DashboardController::class, 'renderLandingPage'])->name('landing');
+
 // Guest / Authentication Routes (1. Login Screen)
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -26,8 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/switch-role', [AuthController::class, 'switchRole'])->name('auth.switch-role');
 
-    // 2. Dashboard / Beranda
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    // 2. Dashboard Actions
     Route::post('/children/{child}/select', [DashboardController::class, 'selectChild'])->name('children.select');
     Route::post('/children/enroll', [ClassGroupController::class, 'enrollChild'])->name('children.enroll');
     Route::patch('/children/{child}/approval', [ClassGroupController::class, 'approveEnrollment'])->name('children.approval');
@@ -36,6 +39,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/kelas', [ClassGroupController::class, 'index'])->name('classes.index');
     Route::post('/kelas', [ClassGroupController::class, 'store'])->name('classes.store');
     Route::patch('/kelas/{classGroup}/quota', [ClassGroupController::class, 'updateQuota'])->name('classes.quota');
+    Route::delete('/kelas/{classGroup}', [ClassGroupController::class, 'destroy'])->name('classes.destroy');
     Route::post('/kelas/{classGroup}/teachers', [ClassGroupController::class, 'syncTeachers'])->name('classes.teachers');
     Route::post('/kelas/attach-teacher', [ClassGroupController::class, 'attachTeacherClass'])->name('classes.attach-teacher');
     Route::post('/teachers', [ClassGroupController::class, 'storeTeacher'])->name('teachers.store');
@@ -61,8 +65,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/pembayaran/{invoice}/proof', [PaymentController::class, 'uploadProof'])->name('payments.proof');
     Route::patch('/pembayaran/{invoice}/status', [PaymentController::class, 'updateStatus'])->name('payments.status');
 
-    // 9. Profil Anak & Orang Tua
+    // 9. Profil Pengguna, Anak & Orang Tua
     Route::get('/profil', [ProfileController::class, 'show'])->name('profile.show');
+    Route::patch('/profil/account', [ProfileController::class, 'updateAccount'])->name('profile.account.update');
     Route::post('/profil/{child}', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/children', [ProfileController::class, 'storeChild'])->name('children.store');
 

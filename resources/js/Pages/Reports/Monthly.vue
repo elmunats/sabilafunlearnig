@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import MobileAppLayout from '../../Layouts/MobileAppLayout.vue';
 
 const props = defineProps({
@@ -51,10 +51,12 @@ const form = useForm({
     reading_score: props.report?.reading_score || 78,
     writing_score: props.report?.writing_score || 74,
     counting_score: props.report?.counting_score || 82,
+    mengaji_score: props.report?.mengaji_score || 84,
     attitude_score: props.report?.attitude_score || 88,
     note_reading: props.report?.notes?.reading || 'Mulai mengenal huruf vokal dan konsonan.',
     note_writing: props.report?.notes?.writing || 'Menulis huruf dengan lebih rapi dan konsisten.',
     note_counting: props.report?.notes?.counting || 'Mengenal angka 1-10 dan menghitung benda.',
+    note_mengaji: props.report?.notes?.mengaji || 'Mengenal dan melafalkan huruf hijaiyah dengan baik.',
     note_attitude: props.report?.notes?.attitude || 'Lebih fokus dan aktif dalam kegiatan.',
 });
 
@@ -68,10 +70,12 @@ function openEditor() {
     form.reading_score = props.report?.reading_score || 78;
     form.writing_score = props.report?.writing_score || 74;
     form.counting_score = props.report?.counting_score || 82;
+    form.mengaji_score = props.report?.mengaji_score || 84;
     form.attitude_score = props.report?.attitude_score || 88;
     form.note_reading = props.report?.notes?.reading || 'Mulai mengenal huruf vokal dan konsonan.';
     form.note_writing = props.report?.notes?.writing || 'Menulis huruf dengan lebih rapi dan konsisten.';
     form.note_counting = props.report?.notes?.counting || 'Mengenal angka 1-10 dan menghitung benda.';
+    form.note_mengaji = props.report?.notes?.mengaji || 'Mengenal dan melafalkan huruf hijaiyah dengan baik.';
     form.note_attitude = props.report?.notes?.attitude || 'Lebih fokus dan aktif dalam kegiatan.';
     showEditorModal.value = true;
 }
@@ -101,12 +105,12 @@ function submitMonthly() {
         </template>
 
         <div class="py-4 space-y-5">
-            <!-- Month-Year Selector Pill Bar (Matches 5. Laporan Bulanan Reference: < Oktober 2026 >) -->
+            <!-- Month-Year Selector Pill Bar -->
             <div class="bg-[#F1F5FB] rounded-2xl px-3 py-2.5 flex items-center justify-between border border-slate-200/70">
                 <button
                     type="button"
                     @click="changeMonth(prevMonth)"
-                    class="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:bg-white transition"
+                    class="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:bg-white transition cursor-pointer"
                     aria-label="Bulan sebelumnya"
                 >
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
@@ -121,7 +125,7 @@ function submitMonthly() {
                 <button
                     type="button"
                     @click="changeMonth(nextMonth)"
-                    class="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:bg-white transition"
+                    class="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:bg-white transition cursor-pointer"
                     aria-label="Bulan berikutnya"
                 >
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
@@ -130,7 +134,7 @@ function submitMonthly() {
                 </button>
             </div>
 
-            <!-- Rekap Kehadiran & Statistik Izin/Sakit (Rujukan dari Laporan Harian Siswa) -->
+            <!-- Rekap Kehadiran & Statistik Izin/Sakit -->
             <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-3.5">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div>
@@ -209,22 +213,25 @@ function submitMonthly() {
             </section>
 
             <div v-if="report" class="space-y-5">
-                <!-- Ringkasan Perkembangan (2x2 Progress Indicator Cards) -->
+                <!-- Ringkasan Perkembangan (Membaca, Menulis, Berhitung, Mengaji, Sikap Belajar) -->
                 <section>
                     <h2 class="text-[15px] font-extrabold text-slate-800 mb-2.5">
-                        Ringkasan Perkembangan
+                        Ringkasan Perkembangan (Membaca, Menulis, Berhitung &amp; Mengaji)
                     </h2>
 
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                    <div class="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
                         <!-- Membaca -->
-                        <div class="p-3.5 rounded-2xl bg-[#EBF3FE]/70 border border-[#D8E7FC] flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0 text-[#2E6FBE] shadow-2xs">
+                        <div class="p-3.5 rounded-2xl bg-[#EBF8F0]/80 border border-[#CBEAD7] flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0 text-[#1E8E5A] shadow-2xs">
                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                 </svg>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-xs font-extrabold text-slate-800">Membaca</p>
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs font-extrabold text-slate-800">Membaca</p>
+                                    <span class="text-[10px] font-bold text-[#1E8E5A]">{{ report.reading_score }}%</span>
+                                </div>
                                 <div class="w-full h-2 rounded-full bg-slate-200/90 mt-1.5 overflow-hidden">
                                     <div class="h-full rounded-full bg-[#22A06B]" :style="{ width: `${report.reading_score}%` }"></div>
                                 </div>
@@ -239,7 +246,10 @@ function submitMonthly() {
                                 </svg>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-xs font-extrabold text-slate-800">Menulis</p>
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs font-extrabold text-slate-800">Menulis</p>
+                                    <span class="text-[10px] font-bold text-[#2E6FBE]">{{ report.writing_score }}%</span>
+                                </div>
                                 <div class="w-full h-2 rounded-full bg-slate-200/90 mt-1.5 overflow-hidden">
                                     <div class="h-full rounded-full bg-[#2E6FBE]" :style="{ width: `${report.writing_score}%` }"></div>
                                 </div>
@@ -252,34 +262,56 @@ function submitMonthly() {
                                 123
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-xs font-extrabold text-slate-800">Berhitung</p>
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs font-extrabold text-slate-800">Berhitung</p>
+                                    <span class="text-[10px] font-bold text-[#D97706]">{{ report.counting_score }}%</span>
+                                </div>
                                 <div class="w-full h-2 rounded-full bg-slate-200/90 mt-1.5 overflow-hidden">
                                     <div class="h-full rounded-full bg-[#F59E0B]" :style="{ width: `${report.counting_score}%` }"></div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Sikap Belajar -->
+                        <!-- Mengaji -->
                         <div class="p-3.5 rounded-2xl bg-[#F3EEFD]/80 border border-[#E2D4F8] flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0 text-[#6D28D9] shadow-2xs">
+                            <div class="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0 text-[#7C3AED] font-extrabold text-sm shadow-2xs">
+                                أ ب
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs font-extrabold text-slate-800">Mengaji</p>
+                                    <span class="text-[10px] font-bold text-[#7C3AED]">{{ report.mengaji_score ?? 80 }}%</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full bg-slate-200/90 mt-1.5 overflow-hidden">
+                                    <div class="h-full rounded-full bg-[#7C3AED]" :style="{ width: `${report.mengaji_score ?? 80}%` }"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sikap Belajar -->
+                        <div class="p-3.5 rounded-2xl bg-rose-50/80 border border-rose-200 flex items-center gap-3 col-span-2 lg:col-span-1">
+                            <div class="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0 text-rose-600 shadow-2xs">
                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                    <circle cx="12" cy="12" r="10" fill="#7C3AED" />
+                                    <circle cx="12" cy="12" r="10" fill="#E11D48" />
                                     <circle cx="9" cy="10" r="1.4" fill="#FFF" />
                                     <circle cx="15" cy="10" r="1.4" fill="#FFF" />
                                     <path d="M8.5 14.5c1 1.5 2.2 2 3.5 2s2.5-.5 3.5-2" stroke="#FFF" stroke-width="1.8" fill="none" stroke-linecap="round" />
                                 </svg>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-xs font-extrabold text-slate-800">Sikap Belajar</p>
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs font-extrabold text-slate-800">Sikap Belajar</p>
+                                    <span class="text-[10px] font-bold text-rose-600">{{ report.attitude_score }}%</span>
+                                </div>
                                 <div class="w-full h-2 rounded-full bg-slate-200/90 mt-1.5 overflow-hidden">
-                                    <div class="h-full rounded-full bg-[#2E6FBE]" :style="{ width: `${report.attitude_score}%` }"></div>
+                                    <div class="h-full rounded-full bg-rose-500" :style="{ width: `${report.attitude_score}%` }"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <!-- Detail Perkembangan Itemized List (Matches 5. Laporan Bulanan Reference) -->
+                <!-- Detail Perkembangan Itemized List -->
                 <section>
                     <h2 class="text-[15px] font-extrabold text-slate-800 mb-2.5">
                         Detail Perkembangan
@@ -329,19 +361,32 @@ function submitMonthly() {
                             </div>
                         </div>
 
-                        <!-- Sikap Belajar row -->
+                        <!-- Mengaji row -->
                         <div class="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-start gap-3">
-                            <div class="w-8 h-8 rounded-xl bg-[#F3EEFD] text-[#7C3AED] flex items-center justify-center shrink-0 mt-0.5">
+                            <div class="w-8 h-8 rounded-xl bg-[#F3EEFD] text-[#7C3AED] font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                                أ ب
+                            </div>
+                            <div class="grid grid-cols-12 gap-2 flex-1 items-baseline">
+                                <span class="col-span-4 text-xs font-extrabold text-slate-800">Mengaji</span>
+                                <p class="col-span-8 text-xs text-slate-600 leading-relaxed">
+                                    {{ report.notes?.mengaji || 'Mengenal dan melafalkan huruf hijaiyah dengan baik.' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Sikap Belajar row -->
+                        <div class="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-start gap-3 md:col-span-2">
+                            <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 mt-0.5">
                                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                    <circle cx="12" cy="12" r="10" fill="#7C3AED" />
+                                    <circle cx="12" cy="12" r="10" fill="#E11D48" />
                                     <circle cx="9" cy="10" r="1.4" fill="#FFF" />
                                     <circle cx="15" cy="10" r="1.4" fill="#FFF" />
                                     <path d="M8.5 14.5c1 1.5 2.2 2 3.5 2s2.5-.5 3.5-2" stroke="#FFF" stroke-width="1.8" fill="none" stroke-linecap="round" />
                                 </svg>
                             </div>
                             <div class="grid grid-cols-12 gap-2 flex-1 items-baseline">
-                                <span class="col-span-4 text-xs font-extrabold text-slate-800">Sikap Belajar</span>
-                                <p class="col-span-8 text-xs text-slate-600 leading-relaxed">
+                                <span class="col-span-4 sm:col-span-2 text-xs font-extrabold text-slate-800">Sikap Belajar</span>
+                                <p class="col-span-8 sm:col-span-10 text-xs text-slate-600 leading-relaxed">
                                     {{ report.notes?.attitude }}
                                 </p>
                             </div>
@@ -362,7 +407,7 @@ function submitMonthly() {
                     <button
                         type="button"
                         @click="changeMonth('2026-10')"
-                        class="px-4 py-2 rounded-xl bg-[#EBF3FE] text-[#2E6FBE] text-xs font-bold"
+                        class="px-4 py-2 rounded-xl bg-[#EBF3FE] text-[#2E6FBE] text-xs font-bold cursor-pointer"
                     >
                         Lihat Oktober 2026
                     </button>
@@ -370,7 +415,7 @@ function submitMonthly() {
                         v-if="user?.can_manage_reports"
                         type="button"
                         @click="openEditor"
-                        class="px-4 py-2 rounded-xl bg-[#2E6FBE] text-white text-xs font-bold"
+                        class="px-4 py-2 rounded-xl bg-[#2E6FBE] text-white text-xs font-bold cursor-pointer"
                     >
                         + Input Evaluasi Bulan Ini
                     </button>
@@ -396,7 +441,7 @@ function submitMonthly() {
                     <button
                         type="button"
                         @click="showEditorModal = false"
-                        class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100"
+                        class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 cursor-pointer"
                         aria-label="Tutup"
                     >
                         ✕
@@ -418,6 +463,10 @@ function submitMonthly() {
                             <input v-model.number="form.counting_score" type="range" min="20" max="100" class="w-full" />
                         </div>
                         <div>
+                            <label class="font-semibold text-slate-700 block mb-1">Skor Mengaji ({{ form.mengaji_score }}%)</label>
+                            <input v-model.number="form.mengaji_score" type="range" min="20" max="100" class="w-full" />
+                        </div>
+                        <div class="col-span-2">
                             <label class="font-semibold text-slate-700 block mb-1">Sikap Belajar ({{ form.attitude_score }}%)</label>
                             <input v-model.number="form.attitude_score" type="range" min="20" max="100" class="w-full" />
                         </div>
@@ -436,15 +485,19 @@ function submitMonthly() {
                         <input v-model="form.note_counting" type="text" required class="w-full px-3 py-2 rounded-xl border border-slate-200" />
                     </div>
                     <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Catatan Mengaji</label>
+                        <input v-model="form.note_mengaji" type="text" required class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+                    </div>
+                    <div>
                         <label class="font-semibold text-slate-700 block mb-1">Catatan Sikap Belajar</label>
                         <input v-model="form.note_attitude" type="text" required class="w-full px-3 py-2 rounded-xl border border-slate-200" />
                     </div>
 
                     <div class="flex justify-end gap-2 pt-2">
-                        <button type="button" @click="showEditorModal = false" class="px-4 py-2 rounded-xl border border-slate-200 font-semibold text-slate-600">
+                        <button type="button" @click="showEditorModal = false" class="px-4 py-2 rounded-xl border border-slate-200 font-semibold text-slate-600 cursor-pointer">
                             Batal
                         </button>
-                        <button type="submit" :disabled="form.processing" class="px-4 py-2 rounded-xl bg-[#2E6FBE] text-white font-bold">
+                        <button type="submit" :disabled="form.processing" class="px-4 py-2 rounded-xl bg-[#2E6FBE] text-white font-bold cursor-pointer">
                             Simpan Evaluasi
                         </button>
                     </div>

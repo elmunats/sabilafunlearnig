@@ -16,6 +16,7 @@ class MonthlyReport extends Model
         'reading_score',
         'writing_score',
         'counting_score',
+        'mengaji_score',
         'attitude_score',
         'notes',
     ];
@@ -26,6 +27,7 @@ class MonthlyReport extends Model
             'reading_score' => 'integer',
             'writing_score' => 'integer',
             'counting_score' => 'integer',
+            'mengaji_score' => 'integer',
             'attitude_score' => 'integer',
             'notes' => 'array',
         ];

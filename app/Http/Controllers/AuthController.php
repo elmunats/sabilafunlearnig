@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Child;
 use App\Models\User;
+use App\Services\PrivateMediaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -15,9 +16,19 @@ use Inertia\Response;
 
 class AuthController extends Controller
 {
-    public function showLogin(): Response
+    public function showLogin(Request $request): Response
     {
-        return Inertia::render('Auth/Login');
+        $availableClasses = \Illuminate\Support\Facades\Schema::hasTable('class_groups')
+            ? \App\Models\ClassGroup::orderBy('id')->pluck('name')->values()->all()
+            : [];
+
+        return Inertia::render('Auth/Login', [
+            'availableClasses' => ! empty($availableClasses)
+                ? $availableClasses
+                : ['Kelompok Calistung A', 'Kelompok Calistung B', 'Kelompok Pracalis A', 'Kelompok Mengaji Iqra'],
+            'openRegister' => $request->boolean('register'),
+            'preselectedGroup' => $request->query('group', ''),
+        ]);
     }
 
     public function login(Request $request): RedirectResponse
@@ -115,10 +126,13 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:190', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:30', 'unique:users,phone'],
+            'address' => ['required', 'string', 'max:500'],
             'password' => ['required', 'string', 'min:6'],
             'child_name' => ['required', 'string', 'max:120'],
             'child_birth_date' => ['required', 'date'],
+            'child_gender' => ['required', 'string', 'in:laki-laki,perempuan,Laki-laki,Perempuan'],
             'child_group' => ['required', 'string', 'max:80'],
+            'child_photo' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:4096'],
         ]);
 
         $user = User::create([
@@ -126,7 +140,7 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'phone' => $validated['phone'],
             'role' => 'parent',
-            'address' => 'Jl. Melati Indah No. 12, Jakarta Selatan',
+            'address' => $validated['address'],
             'password' => $validated['password'],
         ]);
 
@@ -138,15 +152,25 @@ class AuthController extends Controller
         $classGroup = \App\Models\ClassGroup::where('name', $validated['child_group'])->first()
             ?? \App\Models\ClassGroup::first();
 
+        $genderLower = strtolower($validated['child_gender']);
+        $defaultPhoto = ($genderLower === 'laki-laki') ? 'avatars/rafa.svg' : 'avatars/aisyah.svg';
+        $photoPath = $defaultPhoto;
+
+        if ($request->hasFile('child_photo')) {
+            $photoPath = PrivateMediaService::store($request->file('child_photo'), 'avatars');
+        }
+
         $child = Child::create([
             'parent_id' => $user->id,
             'class_group_id' => $classGroup?->id,
             'name' => $validated['child_name'],
             'birth_date' => $validated['child_birth_date'],
+            'gender' => $validated['child_gender'],
+            'address' => $validated['address'],
             'group_name' => $classGroup?->name ?? $validated['child_group'],
             'enrollment_status' => 'pending',
             'join_date' => now()->toDateString(),
-            'photo' => 'avatars/aisyah.svg',
+            'photo' => $photoPath,
         ]);
 
         Auth::login($user);

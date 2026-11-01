@@ -1,6 +1,6 @@
 /.phpunit.cache
 /node_modules
-/public/build
+# /public/build (tracked for direct shared hosting pull without requiring node/npm on server)
 /public/hot
 /public/storage
 /storage/*.key

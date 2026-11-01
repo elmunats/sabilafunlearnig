@@ -49,6 +49,8 @@ class ProfileController extends Controller
                 'status_label' => $activeChild->status_label,
                 'birth_date' => $bd->format('Y-m-d'),
                 'birth_date_formatted' => $bd->format('d') . ' ' . ($monthsFull[(int) $bd->format('n')] ?? '') . ' ' . $bd->format('Y'),
+                'gender' => $activeChild->gender,
+                'address' => $activeChild->address ?? $activeChild->parent?->address,
                 'join_date' => $jd->format('Y-m-d'),
                 'join_date_formatted' => ($monthsFull[(int) $jd->format('n')] ?? '') . ' ' . $jd->format('Y'),
                 'photo_url' => $activeChild->photo_url,
@@ -70,6 +72,42 @@ class ProfileController extends Controller
             'childProfile' => $childProfile,
             'parentOptions' => $parentOptions,
         ]);
+    }
+
+    public function updateAccount(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:190', 'unique:users,email,' . $user->id],
+            'phone' => ['nullable', 'string', 'max:30', 'unique:users,phone,' . $user->id],
+            'current_password' => ['nullable', 'required_with:password', 'string'],
+            'password' => ['nullable', 'string', 'min:6', 'confirmed'],
+        ], [
+            'email.unique' => 'Email ini sudah terdaftar oleh akun lain.',
+            'phone.unique' => 'Nomor HP ini sudah terdaftar oleh akun lain.',
+            'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
+            'password.min' => 'Kata sandi minimal 6 karakter.',
+        ]);
+
+        if (! empty($validated['password'])) {
+            if (! \Illuminate\Support\Facades\Hash::check($validated['current_password'], $user->password)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'current_password' => 'Kata sandi saat ini tidak sesuai.',
+                ]);
+            }
+            $user->password = $validated['password'];
+        }
+
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+        if (isset($validated['phone'])) {
+            $user->phone = $validated['phone'];
+        }
+        $user->save();
+
+        return back()->with('success', 'Profil akun dan keamanan kata sandi berhasil diperbarui.');
     }
 
     public function update(Request $request, Child $child): RedirectResponse

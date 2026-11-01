@@ -59,7 +59,7 @@ const form = useForm({
         : ['Mengenal huruf B', 'Menulis suku kata ba, bi, bu'],
     activities: props.report?.activities?.length
         ? [...props.report.activities]
-        : ['Latihan menulis', 'Permainan huruf', 'Mewarnai gambar'],
+        : ['Membaca suku kata', 'Menulis huruf rapi', 'Berhitung angka', 'Mengaji Iqra / Hijaiyah'],
     behavior_fokus: props.report?.behavior?.Fokus || 'Baik',
     behavior_antusias: props.report?.behavior?.Antusias || 'Baik',
     behavior_kemandirian: props.report?.behavior?.Kemandirian || 'Mulai berkembang',
@@ -91,7 +91,7 @@ function openEditor() {
         : ['Mengenal huruf B', 'Menulis suku kata ba, bi, bu'];
     form.activities = props.report?.activities?.length
         ? [...props.report.activities]
-        : ['Latihan menulis', 'Permainan huruf', 'Mewarnai gambar'];
+        : ['Membaca suku kata', 'Menulis huruf rapi', 'Berhitung angka', 'Mengaji Iqra / Hijaiyah'];
     form.behavior_fokus = props.report?.behavior?.Fokus || 'Baik';
     form.behavior_antusias = props.report?.behavior?.Antusias || 'Baik';
     form.behavior_kemandirian = props.report?.behavior?.Kemandirian || 'Mulai berkembang';
@@ -622,10 +622,11 @@ function submitLeaveRequest() {
                     </div>
 
                     <div>
-                        <label class="font-semibold text-slate-700 block mb-1">Aktivitas Kelas</label>
-                        <input v-model="form.activities[0]" type="text" required class="w-full px-3 py-2 rounded-xl border border-slate-200 mb-1.5" placeholder="Aktivitas 1" />
-                        <input v-model="form.activities[1]" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 mb-1.5" placeholder="Aktivitas 2" />
-                        <input v-model="form.activities[2]" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200" placeholder="Aktivitas 3" />
+                        <label class="font-semibold text-slate-700 block mb-1">Aktivitas Kelas (Membaca, Menulis, Berhitung, Mengaji)</label>
+                        <input v-model="form.activities[0]" type="text" required class="w-full px-3 py-2 rounded-xl border border-slate-200 mb-1.5" placeholder="Aktivitas Membaca" />
+                        <input v-model="form.activities[1]" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 mb-1.5" placeholder="Aktivitas Menulis" />
+                        <input v-model="form.activities[2]" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 mb-1.5" placeholder="Aktivitas Berhitung" />
+                        <input v-model="form.activities[3]" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200" placeholder="Aktivitas Mengaji" />
                     </div>
 
                     <div class="grid grid-cols-3 gap-2">

@@ -114,13 +114,15 @@ class MonthlyReportController extends Controller
                 'reading_score' => $reportModel->reading_score,
                 'writing_score' => $reportModel->writing_score,
                 'counting_score' => $reportModel->counting_score,
+                'mengaji_score' => $reportModel->mengaji_score ?? 80,
                 'attitude_score' => $reportModel->attitude_score,
-                'notes' => $reportModel->notes ?? [
+                'notes' => array_merge([
                     'reading' => '',
                     'writing' => '',
                     'counting' => '',
+                    'mengaji' => '',
                     'attitude' => '',
-                ],
+                ], $reportModel->notes ?? []),
             ] : null,
         ]);
     }
@@ -135,10 +137,12 @@ class MonthlyReportController extends Controller
             'reading_score' => ['required', 'integer', 'min:10', 'max:100'],
             'writing_score' => ['required', 'integer', 'min:10', 'max:100'],
             'counting_score' => ['required', 'integer', 'min:10', 'max:100'],
+            'mengaji_score' => ['nullable', 'integer', 'min:10', 'max:100'],
             'attitude_score' => ['required', 'integer', 'min:10', 'max:100'],
             'note_reading' => ['required', 'string', 'max:500'],
             'note_writing' => ['required', 'string', 'max:500'],
             'note_counting' => ['required', 'string', 'max:500'],
+            'note_mengaji' => ['nullable', 'string', 'max:500'],
             'note_attitude' => ['required', 'string', 'max:500'],
         ]);
 
@@ -153,11 +157,13 @@ class MonthlyReportController extends Controller
                 'reading_score' => $validated['reading_score'],
                 'writing_score' => $validated['writing_score'],
                 'counting_score' => $validated['counting_score'],
+                'mengaji_score' => $validated['mengaji_score'] ?? 80,
                 'attitude_score' => $validated['attitude_score'],
                 'notes' => [
                     'reading' => $validated['note_reading'],
                     'writing' => $validated['note_writing'],
                     'counting' => $validated['note_counting'],
+                    'mengaji' => $validated['note_mengaji'] ?? 'Mampu mengenal dan melafalkan huruf hijaiyah dengan baik.',
                     'attitude' => $validated['note_attitude'],
                 ],
             ]

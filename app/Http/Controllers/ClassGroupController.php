@@ -114,6 +114,8 @@ class ClassGroupController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'birth_date' => ['required', 'date'],
+            'gender' => ['nullable', 'string', 'in:laki-laki,perempuan,Laki-laki,Perempuan'],
+            'address' => ['nullable', 'string', 'max:500'],
             'class_group_id' => ['required', 'exists:class_groups,id'],
             'parent_id' => ['nullable', 'exists:users,id'],
             'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:4096'],
@@ -135,7 +137,9 @@ class ClassGroupController extends Controller
             }
         }
 
-        $photoPath = 'avatars/syifa.svg';
+        $genderLower = strtolower($validated['gender'] ?? '');
+        $defaultAvatar = ($genderLower === 'laki-laki') ? 'avatars/rafa.svg' : 'avatars/aisyah.svg';
+        $photoPath = $defaultAvatar;
         if ($request->hasFile('photo')) {
             $photoPath = PrivateMediaService::store($request->file('photo'), 'avatars');
         }
@@ -148,6 +152,8 @@ class ClassGroupController extends Controller
             'name' => $validated['name'],
             'photo' => $photoPath,
             'birth_date' => $validated['birth_date'],
+            'gender' => $validated['gender'] ?? null,
+            'address' => $validated['address'] ?? null,
             'group_name' => $classGroup->name,
             'enrollment_status' => $status,
             'approved_at' => $status === 'approved' ? now() : null,
@@ -269,11 +275,22 @@ class ClassGroupController extends Controller
             abort(403, 'Hanya Admin yang dapat menambahkan kelas baru.');
         }
 
+        if ($request->filled(['start_time', 'end_time']) && (! $request->filled('schedule') || $request->filled('days'))) {
+            $request->merge([
+                'schedule' => $this->formatScheduleFromInput(
+                    $request->input('days', []),
+                    (string) $request->input('start_time'),
+                    (string) $request->input('end_time'),
+                    (string) $request->input('schedule', '')
+                ),
+            ]);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100', 'unique:class_groups,name'],
-            'category' => ['required', 'in:Calistung,Pracalis'],
+            'category' => ['required', 'in:Calistung,Pracalis,Mengaji,Membaca,Menulis,Berhitung,Bermain & Belajar'],
             'quota' => ['required', 'integer', 'min:1', 'max:50'],
-            'schedule' => ['required', 'string', 'max:100'],
+            'schedule' => ['required', 'string', 'max:150'],
             'teacher_ids' => ['nullable', 'array'],
             'teacher_ids.*' => ['exists:users,id'],
         ]);
@@ -303,11 +320,22 @@ class ClassGroupController extends Controller
             abort(403, 'Hanya Admin yang dapat mengubah kuota kelas.');
         }
 
+        if ($request->filled(['start_time', 'end_time']) && (! $request->filled('schedule') || $request->filled('days'))) {
+            $request->merge([
+                'schedule' => $this->formatScheduleFromInput(
+                    $request->input('days', []),
+                    (string) $request->input('start_time'),
+                    (string) $request->input('end_time'),
+                    (string) $request->input('schedule', '')
+                ),
+            ]);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'category' => ['required', 'in:Calistung,Pracalis'],
+            'category' => ['required', 'in:Calistung,Pracalis,Mengaji,Membaca,Menulis,Berhitung,Bermain & Belajar'],
             'quota' => ['required', 'integer', 'min:1', 'max:100'],
-            'schedule' => ['required', 'string', 'max:100'],
+            'schedule' => ['required', 'string', 'max:150'],
         ]);
 
         $classGroup->update($validated);
@@ -316,6 +344,46 @@ class ClassGroupController extends Controller
         Child::where('class_group_id', $classGroup->id)->update(['group_name' => $classGroup->name]);
 
         return back()->with('success', 'Kuota & informasi ' . $classGroup->name . ' berhasil diperbarui (Kuota: ' . $classGroup->quota . ' siswa).');
+    }
+
+    private function formatScheduleFromInput(array $days, string $startTime, string $endTime, string $fallbackSchedule = ''): string
+    {
+        $orderedDays = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+        $selected = array_values(array_intersect($orderedDays, $days));
+
+        if (empty($selected)) {
+            return $fallbackSchedule ?: 'Senin - Jumat, 10.00 - 11.00';
+        }
+
+        $indices = array_map(fn ($d) => array_search($d, $orderedDays, true), $selected);
+        $isConsecutive = count($indices) > 2 && ($indices[count($indices) - 1] - $indices[0] === count($indices) - 1);
+
+        $dayLabel = $isConsecutive
+            ? $selected[0] . ' - ' . $selected[count($selected) - 1]
+            : implode(', ', $selected);
+
+        $startFormatted = str_replace(':', '.', trim($startTime));
+        $endFormatted = str_replace(':', '.', trim($endTime));
+
+        return "{$dayLabel}, {$startFormatted} - {$endFormatted}";
+    }
+
+    /**
+     * Admin deletes a ClassGroup.
+     */
+    public function destroy(Request $request, ClassGroup $classGroup): RedirectResponse
+    {
+        if (! $request->user()->isAdmin()) {
+            abort(403, 'Hanya Admin yang dapat menghapus kelas.');
+        }
+
+        $className = $classGroup->name;
+        // Detach teachers and remove class
+        $classGroup->teachers()->detach();
+        $classGroup->children()->update(['class_group_id' => null]);
+        $classGroup->delete();
+
+        return redirect()->route('classes.index')->with('success', "Kelas {$className} berhasil dihapus.");
     }
 
     /**
@@ -438,6 +506,8 @@ class ClassGroupController extends Controller
             'enrollment_status' => $c->enrollment_status,
             'status_label' => $c->status_label,
             'birth_date' => $c->birth_date?->format('d M Y'),
+            'gender' => $c->gender,
+            'address' => $c->address ?? $c->parent?->address,
             'join_date' => $c->join_date?->format('d M Y'),
             'photo_url' => $c->photo_url,
             'parent_name' => $c->parent?->name ?? '-',

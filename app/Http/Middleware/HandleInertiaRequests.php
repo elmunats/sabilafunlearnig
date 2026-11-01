@@ -46,6 +46,8 @@ class HandleInertiaRequests extends Middleware
                 'enrollment_status' => $c->enrollment_status ?? 'approved',
                 'status_label' => $c->status_label,
                 'birth_date' => $c->birth_date?->format('Y-m-d'),
+                'gender' => $c->gender,
+                'address' => $c->address ?? $c->parent?->address,
                 'join_date' => $c->join_date?->format('Y-m-d'),
                 'photo_url' => $c->photo_url,
                 'parent' => $c->parent ? [

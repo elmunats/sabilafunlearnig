@@ -44,20 +44,95 @@ const approvalClassSelection = ref(
     Object.fromEntries(props.pendingChildren.map((c) => [c.id, c.class_group_id || props.allClasses[0]?.id]))
 );
 
+const allWeekDays = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+
+function formatScheduleLabel(days, startTime, endTime) {
+    const ordered = allWeekDays.filter((d) => days.includes(d));
+    if (ordered.length === 0) return 'Senin - Jumat, 10.00 - 11.00';
+    const indices = ordered.map((d) => allWeekDays.indexOf(d));
+    const isConsecutive = indices.length > 2 && indices[indices.length - 1] - indices[0] === indices.length - 1;
+    const dayStr = isConsecutive ? `${ordered[0]} - ${ordered[ordered.length - 1]}` : ordered.join(', ');
+    const st = (startTime || '10:00').replace(':', '.');
+    const et = (endTime || '11:00').replace(':', '.');
+    return `${dayStr}, ${st} - ${et}`;
+}
+
+function parseScheduleString(scheduleStr) {
+    const defaultResult = {
+        days: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'],
+        start_time: '10:00',
+        end_time: '11:00',
+    };
+    if (!scheduleStr) return defaultResult;
+
+    const timeMatch = scheduleStr.match(/(\d{1,2})[:.](\d{2})\s*-\s*(\d{1,2})[:.](\d{2})/);
+    const start_time = timeMatch ? `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}` : '10:00';
+    const end_time = timeMatch ? `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}` : '11:00';
+
+    const rangeMatch = scheduleStr.match(/(Senin|Selasa|Rabu|Kamis|Jumat|Sabtu|Minggu)\s*-\s*(Senin|Selasa|Rabu|Kamis|Jumat|Sabtu|Minggu)/i);
+    if (rangeMatch) {
+        const startIdx = allWeekDays.findIndex((d) => d.toLowerCase() === rangeMatch[1].toLowerCase());
+        const endIdx = allWeekDays.findIndex((d) => d.toLowerCase() === rangeMatch[2].toLowerCase());
+        if (startIdx !== -1 && endIdx !== -1 && endIdx >= startIdx) {
+            return {
+                days: allWeekDays.slice(startIdx, endIdx + 1),
+                start_time,
+                end_time,
+            };
+        }
+    }
+
+    const foundDays = allWeekDays.filter((d) => new RegExp(d, 'i').test(scheduleStr));
+    return {
+        days: foundDays.length ? foundDays : defaultResult.days,
+        start_time,
+        end_time,
+    };
+}
+
 const createClassForm = useForm({
     name: '',
     category: 'Calistung',
     quota: 10,
+    days: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'],
+    start_time: '10:00',
+    end_time: '11:00',
     schedule: 'Senin - Jumat, 10.00 - 11.00',
     teacher_ids: user.value?.is_teacher ? [user.value.id] : [],
 });
 
+const initialQuotaParsed = parseScheduleString(props.activeClass?.schedule);
 const quotaForm = useForm({
     name: props.activeClass?.name || '',
     category: props.activeClass?.category || 'Calistung',
     quota: props.activeClass?.quota || 10,
+    days: initialQuotaParsed.days,
+    start_time: initialQuotaParsed.start_time,
+    end_time: initialQuotaParsed.end_time,
     schedule: props.activeClass?.schedule || 'Senin - Jumat, 10.00 - 11.00',
 });
+
+function toggleDay(formObj, day) {
+    const idx = formObj.days.indexOf(day);
+    if (idx > -1) {
+        if (formObj.days.length > 1) {
+            formObj.days.splice(idx, 1);
+        }
+    } else {
+        formObj.days.push(day);
+    }
+    formObj.days = allWeekDays.filter((d) => formObj.days.includes(d));
+    formObj.schedule = formatScheduleLabel(formObj.days, formObj.start_time, formObj.end_time);
+}
+
+function setPresetDays(formObj, presetDays) {
+    formObj.days = [...presetDays];
+    formObj.schedule = formatScheduleLabel(formObj.days, formObj.start_time, formObj.end_time);
+}
+
+function syncScheduleText(formObj) {
+    formObj.schedule = formatScheduleLabel(formObj.days, formObj.start_time, formObj.end_time);
+}
 
 const mappingForm = useForm({
     teacher_ids: props.activeClass?.teacher_ids ? [...props.activeClass.teacher_ids] : [],
@@ -81,9 +156,13 @@ function selectClass(classId) {
 
 function openEditQuota() {
     if (!props.activeClass) return;
+    const parsed = parseScheduleString(props.activeClass.schedule);
     quotaForm.name = props.activeClass.name;
     quotaForm.category = props.activeClass.category;
     quotaForm.quota = props.activeClass.quota;
+    quotaForm.days = parsed.days;
+    quotaForm.start_time = parsed.start_time;
+    quotaForm.end_time = parsed.end_time;
     quotaForm.schedule = props.activeClass.schedule;
     showEditQuotaModal.value = true;
 }
@@ -95,6 +174,7 @@ function openMappingModal() {
 }
 
 function submitCreateClass() {
+    syncScheduleText(createClassForm);
     createClassForm.post('/kelas', {
         onSuccess: () => {
             showCreateClassModal.value = false;
@@ -105,6 +185,7 @@ function submitCreateClass() {
 
 function submitEditQuota() {
     if (!props.activeClass) return;
+    syncScheduleText(quotaForm);
     quotaForm.patch(`/kelas/${props.activeClass.id}/quota`, {
         onSuccess: () => {
             showEditQuotaModal.value = false;
@@ -136,6 +217,13 @@ function submitAddTeacher() {
             addTeacherForm.reset('name', 'email', 'phone');
         },
     });
+}
+
+function deleteActiveClass() {
+    if (!props.activeClass) return;
+    if (confirm(`Apakah Anda yakin ingin menghapus kelas "${props.activeClass.name}"? Data penempatan siswa pada kelas ini akan dilepas.`)) {
+        router.delete(`/kelas/${props.activeClass.id}`);
+    }
 }
 
 function handleApproval(childId, status) {
@@ -205,9 +293,17 @@ function openChildModule(childId, destinationUrl) {
                             <div class="flex items-center gap-2.5 min-w-0">
                                 <img :src="child.photo_url" :alt="child.name" class="w-10 h-10 rounded-full object-cover bg-slate-100 shrink-0" />
                                 <div class="min-w-0">
-                                    <p class="text-xs font-extrabold text-slate-800 truncate">{{ child.name }}</p>
+                                    <p class="text-xs font-extrabold text-slate-800 truncate">
+                                        {{ child.name }}
+                                        <span v-if="child.gender" class="ml-1 text-[10px] font-semibold text-slate-500">
+                                            ({{ child.gender.toLowerCase() === 'laki-laki' ? '👦 Laki-laki' : '👧 Perempuan' }})
+                                        </span>
+                                    </p>
                                     <p class="text-[11px] text-slate-500 truncate">
                                         Orang Tua: {{ child.parent_name }} ({{ child.parent_phone }})
+                                    </p>
+                                    <p v-if="child.address" class="text-[10px] text-slate-400 truncate">
+                                        📍 {{ child.address }}
                                     </p>
                                     <p class="text-[11px] font-semibold text-[#2E6FBE]">
                                         Pilihan: {{ child.group_name }}
@@ -314,14 +410,23 @@ function openChildModule(childId, destinationUrl) {
                             </p>
                         </div>
 
-                        <button
-                            v-if="user?.is_admin"
-                            type="button"
-                            @click="openEditQuota"
-                            class="px-2.5 py-1.5 rounded-xl bg-[#FEF6E0] border border-[#F9E4B7] text-[#B7791F] text-xs font-bold hover:brightness-95 cursor-pointer shrink-0"
-                        >
-                            Atur Kuota
-                        </button>
+                        <div v-if="user?.is_admin" class="flex items-center gap-2 shrink-0">
+                            <button
+                                type="button"
+                                @click="openEditQuota"
+                                class="px-2.5 py-1.5 rounded-xl bg-[#FEF6E0] border border-[#F9E4B7] text-[#B7791F] text-xs font-bold hover:brightness-95 cursor-pointer"
+                            >
+                                Atur Kuota
+                            </button>
+                            <button
+                                type="button"
+                                @click="deleteActiveClass"
+                                class="px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold hover:bg-rose-100 transition cursor-pointer"
+                                title="Hapus Kelas"
+                            >
+                                Hapus Kelas
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Quota Visual Progress Indicator -->
@@ -421,6 +526,10 @@ function openChildModule(childId, destinationUrl) {
                                         </div>
                                         <p class="text-[11px] text-slate-500 truncate mt-0.5">
                                             Orang Tua: {{ student.parent_name }} • Lahir: {{ student.birth_date }}
+                                            <span v-if="student.gender"> • {{ student.gender.toLowerCase() === 'laki-laki' ? '👦 Laki-laki' : '👧 Perempuan' }}</span>
+                                        </p>
+                                        <p v-if="student.address" class="text-[10px] text-slate-400 truncate">
+                                            📍 {{ student.address }}
                                         </p>
                                     </div>
                                 </div>
@@ -555,6 +664,10 @@ function openChildModule(childId, destinationUrl) {
                             <select v-model="quotaForm.category" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">
                                 <option value="Calistung">Calistung</option>
                                 <option value="Pracalis">Pracalis</option>
+                                <option value="Mengaji">Mengaji</option>
+                                <option value="Membaca">Membaca</option>
+                                <option value="Menulis">Menulis</option>
+                                <option value="Berhitung">Berhitung</option>
                             </select>
                         </div>
                         <div>
@@ -562,9 +675,74 @@ function openChildModule(childId, destinationUrl) {
                             <input v-model.number="quotaForm.quota" type="number" min="1" max="100" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold" />
                         </div>
                     </div>
-                    <div>
-                        <label class="font-semibold text-slate-700 block mb-1">Jadwal Belajar</label>
-                        <input v-model="quotaForm.schedule" type="text" required class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="font-semibold text-slate-700">Hari Belajar (Senin - Minggu)</label>
+                            <div class="flex gap-1">
+                                <button
+                                    type="button"
+                                    @click="setPresetDays(quotaForm, ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'])"
+                                    class="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-600 cursor-pointer"
+                                >
+                                    Sen-Jum
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="setPresetDays(quotaForm, ['Sabtu', 'Minggu'])"
+                                    class="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-600 cursor-pointer"
+                                >
+                                    Sab-Min
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="setPresetDays(quotaForm, allWeekDays)"
+                                    class="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-600 cursor-pointer"
+                                >
+                                    Semua
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                            <button
+                                v-for="day in allWeekDays"
+                                :key="day"
+                                type="button"
+                                @click="toggleDay(quotaForm, day)"
+                                :class="[
+                                    'py-1.5 px-1 rounded-xl text-[11px] font-bold border transition cursor-pointer text-center',
+                                    quotaForm.days.includes(day)
+                                        ? 'bg-[#2E6FBE] text-white border-[#2E6FBE]'
+                                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100',
+                                ]"
+                            >
+                                {{ day.slice(0, 3) }}
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <div>
+                                <label class="font-semibold text-slate-700 block mb-1">Jam Mulai</label>
+                                <input
+                                    v-model="quotaForm.start_time"
+                                    @change="syncScheduleText(quotaForm)"
+                                    type="time"
+                                    required
+                                    class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-800"
+                                />
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-700 block mb-1">Jam Selesai</label>
+                                <input
+                                    v-model="quotaForm.end_time"
+                                    @change="syncScheduleText(quotaForm)"
+                                    type="time"
+                                    required
+                                    class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-800"
+                                />
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200/70">
+                            Format jadwal: <strong class="text-slate-800">{{ quotaForm.schedule }}</strong>
+                        </p>
                     </div>
                     <div class="flex justify-end gap-2 pt-2">
                         <button type="button" @click="showEditQuotaModal = false" class="px-4 py-2 rounded-xl border border-slate-200 font-semibold text-slate-600">
@@ -666,6 +844,10 @@ function openChildModule(childId, destinationUrl) {
                             <select v-model="createClassForm.category" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">
                                 <option value="Calistung">Calistung</option>
                                 <option value="Pracalis">Pracalis</option>
+                                <option value="Mengaji">Mengaji</option>
+                                <option value="Membaca">Membaca</option>
+                                <option value="Menulis">Menulis</option>
+                                <option value="Berhitung">Berhitung</option>
                             </select>
                         </div>
                         <div>
@@ -673,9 +855,74 @@ function openChildModule(childId, destinationUrl) {
                             <input v-model.number="createClassForm.quota" type="number" min="1" max="50" required class="w-full px-3 py-2 rounded-xl border border-slate-200" />
                         </div>
                     </div>
-                    <div>
-                        <label class="font-semibold text-slate-700 block mb-1">Jadwal</label>
-                        <input v-model="createClassForm.schedule" type="text" required class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="font-semibold text-slate-700">Hari Belajar (Senin - Minggu)</label>
+                            <div class="flex gap-1">
+                                <button
+                                    type="button"
+                                    @click="setPresetDays(createClassForm, ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'])"
+                                    class="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-600 cursor-pointer"
+                                >
+                                    Sen-Jum
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="setPresetDays(createClassForm, ['Sabtu', 'Minggu'])"
+                                    class="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-600 cursor-pointer"
+                                >
+                                    Sab-Min
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="setPresetDays(createClassForm, allWeekDays)"
+                                    class="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-600 cursor-pointer"
+                                >
+                                    Semua
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                            <button
+                                v-for="day in allWeekDays"
+                                :key="day"
+                                type="button"
+                                @click="toggleDay(createClassForm, day)"
+                                :class="[
+                                    'py-1.5 px-1 rounded-xl text-[11px] font-bold border transition cursor-pointer text-center',
+                                    createClassForm.days.includes(day)
+                                        ? 'bg-[#2E6FBE] text-white border-[#2E6FBE]'
+                                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100',
+                                ]"
+                            >
+                                {{ day.slice(0, 3) }}
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <div>
+                                <label class="font-semibold text-slate-700 block mb-1">Jam Mulai</label>
+                                <input
+                                    v-model="createClassForm.start_time"
+                                    @change="syncScheduleText(createClassForm)"
+                                    type="time"
+                                    required
+                                    class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-800"
+                                />
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-700 block mb-1">Jam Selesai</label>
+                                <input
+                                    v-model="createClassForm.end_time"
+                                    @change="syncScheduleText(createClassForm)"
+                                    type="time"
+                                    required
+                                    class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-800"
+                                />
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200/70">
+                            Format jadwal: <strong class="text-slate-800">{{ createClassForm.schedule }}</strong>
+                        </p>
                     </div>
                     <div>
                         <label class="font-semibold text-slate-700 block mb-1">Mapping Guru Pengajar</label>

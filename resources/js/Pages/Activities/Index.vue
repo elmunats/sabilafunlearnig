@@ -6,7 +6,7 @@ import MobileAppLayout from '../../Layouts/MobileAppLayout.vue';
 const props = defineProps({
     categories: {
         type: Array,
-        default: () => ['Semua', 'Calistung', 'Pracalis', 'Kegiatan Lain'],
+        default: () => ['Semua', 'Membaca', 'Menulis', 'Berhitung', 'Mengaji', 'Calistung', 'Pracalis', 'Kegiatan Lain'],
     },
     selectedCategory: {
         type: String,
@@ -241,6 +241,10 @@ function submitUpload() {
                         <div>
                             <label class="font-semibold text-slate-700 block mb-1">Kategori</label>
                             <select v-model="uploadForm.category" class="w-full px-2.5 py-2 rounded-xl border border-slate-200 bg-white">
+                                <option value="Membaca">Membaca</option>
+                                <option value="Menulis">Menulis</option>
+                                <option value="Berhitung">Berhitung</option>
+                                <option value="Mengaji">Mengaji</option>
                                 <option value="Calistung">Calistung</option>
                                 <option value="Pracalis">Pracalis</option>
                                 <option value="Kegiatan Lain">Kegiatan Lain</option>

@@ -29,10 +29,13 @@ const unreadCount = computed(() => page.props.auth?.unreadNotificationsCount || 
 const showChildDropdown = ref(false);
 const showEnrollChildModal = ref(false);
 const showLeaveModal = ref(false);
+const enrollPhotoPreview = ref(null);
 
 const enrollForm = useForm({
     name: '',
     birth_date: '2022-08-15',
+    gender: 'laki-laki',
+    address: '',
     class_group_id: classGroups.value[0]?.id || '',
     photo: null,
 });
@@ -70,11 +73,24 @@ function selectChild(childId) {
 function openEnrollModal() {
     showChildDropdown.value = false;
     enrollForm.class_group_id = classGroups.value[0]?.id || '';
+    enrollForm.address = activeChild.value?.address || page.props.auth?.user?.address || '';
+    enrollPhotoPreview.value = null;
     showEnrollChildModal.value = true;
 }
 
 function handleEnrollPhoto(e) {
-    enrollForm.photo = e.target.files[0] || null;
+    const file = e.target.files[0];
+    if (file) {
+        enrollForm.photo = file;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            enrollPhotoPreview.value = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        enrollForm.photo = null;
+        enrollPhotoPreview.value = null;
+    }
 }
 
 function submitEnrollChild() {
@@ -82,7 +98,8 @@ function submitEnrollChild() {
         forceFormData: true,
         onSuccess: () => {
             showEnrollChildModal.value = false;
-            enrollForm.reset('name', 'photo');
+            enrollPhotoPreview.value = null;
+            enrollForm.reset('name', 'photo', 'address');
         },
     });
 }
@@ -597,6 +614,45 @@ function submitLeaveRequest() {
                         <p v-if="enrollForm.errors.name" class="text-rose-600 mt-1">{{ enrollForm.errors.name }}</p>
                     </div>
 
+                    <!-- Jenis Kelamin Anak -->
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Jenis Kelamin Anak</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label
+                                :class="[
+                                    'flex items-center justify-center gap-2 px-3 py-2 rounded-xl border-2 cursor-pointer transition text-xs font-bold',
+                                    enrollForm.gender === 'laki-laki'
+                                        ? 'border-[#0077C2] bg-[#F0F7FF] text-[#005E9C]'
+                                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                ]"
+                            >
+                                <input
+                                    type="radio"
+                                    value="laki-laki"
+                                    v-model="enrollForm.gender"
+                                    class="sr-only"
+                                />
+                                <span>👦 Laki-laki</span>
+                            </label>
+                            <label
+                                :class="[
+                                    'flex items-center justify-center gap-2 px-3 py-2 rounded-xl border-2 cursor-pointer transition text-xs font-bold',
+                                    enrollForm.gender === 'perempuan'
+                                        ? 'border-[#EC4899] bg-[#FDF2F8] text-[#BE185D]'
+                                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                ]"
+                            >
+                                <input
+                                    type="radio"
+                                    value="perempuan"
+                                    v-model="enrollForm.gender"
+                                    class="sr-only"
+                                />
+                                <span>👧 Perempuan</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div>
                         <label class="font-semibold text-slate-700 block mb-1">Tanggal Lahir Anak</label>
                         <input
@@ -605,6 +661,16 @@ function submitLeaveRequest() {
                             required
                             class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs"
                         />
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Alamat Rumah Tempat Tinggal</label>
+                        <textarea
+                            v-model="enrollForm.address"
+                            rows="2"
+                            placeholder="Contoh: Jl. Melati Indah No. 12, RT 02 / RW 05"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs resize-none"
+                        ></textarea>
                     </div>
 
                     <div>
@@ -623,12 +689,25 @@ function submitLeaveRequest() {
 
                     <div>
                         <label class="font-semibold text-slate-700 block mb-1">Foto Profil Anak (Opsional)</label>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            @change="handleEnrollPhoto"
-                            class="w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-[#EBF3FE] file:text-[#2E6FBE] file:font-bold"
-                        />
+                        <div class="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 bg-slate-50/60">
+                            <div class="w-10 h-10 rounded-full overflow-hidden bg-white border border-slate-200 shrink-0 flex items-center justify-center">
+                                <img
+                                    v-if="enrollPhotoPreview"
+                                    :src="enrollPhotoPreview"
+                                    alt="Pratinjau foto anak"
+                                    class="w-full h-full object-cover"
+                                />
+                                <span v-else class="text-base">
+                                    {{ enrollForm.gender === 'laki-laki' ? '👦' : '👧' }}
+                                </span>
+                            </div>
+                            <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                                @change="handleEnrollPhoto"
+                                class="w-full text-xs text-slate-600 file:mr-2.5 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:bg-[#EBF3FE] file:text-[#0077C2] file:font-bold file:text-xs cursor-pointer"
+                            />
+                        </div>
                     </div>
 
                     <div class="flex justify-end gap-2 pt-2">

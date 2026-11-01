@@ -20,6 +20,247 @@ class SabilaFunLearningTest extends TestCase
     {
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
+        $this->seedTestFixtures();
+    }
+
+    private function seedTestFixtures(): void
+    {
+        $admin = User::where('email', 'admin@sabilafun.id')->first();
+        if (! $admin) {
+            $admin = User::create([
+                'name' => 'Admin Sabila',
+                'email' => 'admin@sabilafun.id',
+                'phone' => '081100001111',
+                'role' => 'admin',
+                'password' => 'password123',
+            ]);
+            $admin->assignRole('admin');
+        }
+
+        $teacherNisa = User::firstOrCreate(
+            ['email' => 'guru@sabilafun.id'],
+            [
+                'name' => 'Ustadzah Annisa',
+                'phone' => '081222223333',
+                'role' => 'teacher',
+                'password' => 'password123',
+            ]
+        );
+        $teacherNisa->syncRoles(['teacher']);
+
+        $teacherTari = User::firstOrCreate(
+            ['email' => 'tari@sabilafun.id'],
+            [
+                'name' => 'Ustadzah Tari',
+                'phone' => '081233334444',
+                'role' => 'teacher',
+                'password' => 'password123',
+            ]
+        );
+        $teacherTari->syncRoles(['teacher']);
+
+        $parentSiti = User::firstOrCreate(
+            ['email' => 'siti@example.com'],
+            [
+                'name' => 'Siti Aminah',
+                'phone' => '081234567890',
+                'role' => 'parent',
+                'address' => 'Jl. Anggrek No. 12, Bandung',
+                'password' => 'password123',
+            ]
+        );
+        $parentSiti->syncRoles(['parent']);
+
+        $parentBudi = User::firstOrCreate(
+            ['email' => 'budi@example.com'],
+            [
+                'name' => 'Budi Santoso',
+                'phone' => '081298765432',
+                'role' => 'parent',
+                'address' => 'Jl. Melati No. 5, Bandung',
+                'password' => 'password123',
+            ]
+        );
+        $parentBudi->syncRoles(['parent']);
+
+        $calistungA = ClassGroup::firstOrCreate(
+            ['name' => 'Kelompok Calistung A'],
+            [
+                'category' => 'Calistung',
+                'quota' => 8,
+                'schedule' => 'Senin - Jumat, 10.00 - 11.00',
+            ]
+        );
+        $calistungA->teachers()->syncWithoutDetaching([$teacherNisa->id]);
+
+        $calistungB = ClassGroup::firstOrCreate(
+            ['name' => 'Kelompok Calistung B'],
+            [
+                'category' => 'Calistung',
+                'quota' => 8,
+                'schedule' => 'Senin - Jumat, 11.15 - 12.15',
+            ]
+        );
+
+        $aisyah = Child::firstOrCreate(
+            ['name' => 'Aisyah'],
+            [
+                'parent_id' => $parentSiti->id,
+                'class_group_id' => $calistungA->id,
+                'group_name' => 'Kelompok Calistung A',
+                'photo' => 'avatars/aisyah.svg',
+                'enrollment_status' => 'approved',
+                'birth_date' => '2021-04-12',
+                'join_date' => '2026-07-01',
+            ]
+        );
+
+        \Illuminate\Support\Facades\Storage::disk(\App\Services\PrivateMediaService::diskName())
+            ->put('avatars/aisyah.svg', '<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+
+        $rafa = Child::firstOrCreate(
+            ['name' => 'Rafa'],
+            [
+                'parent_id' => $parentBudi->id,
+                'class_group_id' => $calistungB->id,
+                'group_name' => 'Kelompok Calistung B',
+                'enrollment_status' => 'approved',
+                'birth_date' => '2021-08-20',
+                'join_date' => '2026-07-01',
+            ]
+        );
+
+        $dailyReport = DailyReport::firstOrCreate(
+            [
+                'child_id' => $aisyah->id,
+                'report_date' => '2026-10-14',
+            ],
+            [
+                'teacher_id' => $teacherNisa->id,
+                'time_range' => '10.00 - 11.00',
+                'materials' => ['Mengenal huruf C dan D', 'Berhitung 1 sampai 10'],
+                'activities' => ['Menulis huruf C dan D di buku kotak', 'Bermain kartu angka'],
+                'behavior' => [
+                    'Fokus' => 'Sangat baik',
+                    'Antusias' => 'Sangat baik',
+                    'Kemandirian' => 'Baik',
+                ],
+                'teacher_notes' => 'Aisyah sangat antusias dan konsentrasi baik.',
+                'attendance_status' => 'hadir',
+            ]
+        );
+
+        // Seed other attendance records for stats test
+        foreach (['2026-10-01', '2026-10-02', '2026-10-05', '2026-10-06'] as $date) {
+            DailyReport::firstOrCreate(
+                ['child_id' => $aisyah->id, 'report_date' => $date],
+                [
+                    'teacher_id' => $teacherNisa->id,
+                    'time_range' => '10.00 - 11.00',
+                    'materials' => ['Belajar'],
+                    'activities' => ['Bermain'],
+                    'behavior' => ['Fokus' => 'Baik', 'Antusias' => 'Baik', 'Kemandirian' => 'Baik'],
+                    'teacher_notes' => 'Catatan harian.',
+                    'attendance_status' => 'hadir',
+                ]
+            );
+        }
+        DailyReport::firstOrCreate(
+            ['child_id' => $aisyah->id, 'report_date' => '2026-10-07'],
+            [
+                'teacher_id' => $teacherNisa->id,
+                'time_range' => '10.00 - 11.00',
+                'materials' => ['Izin'],
+                'activities' => ['Izin'],
+                'behavior' => ['Fokus' => 'Baik', 'Antusias' => 'Baik', 'Kemandirian' => 'Baik'],
+                'teacher_notes' => 'Izin',
+                'attendance_status' => 'izin',
+                'absence_reason' => 'Acara',
+            ]
+        );
+        DailyReport::firstOrCreate(
+            ['child_id' => $aisyah->id, 'report_date' => '2026-10-08'],
+            [
+                'teacher_id' => $teacherNisa->id,
+                'time_range' => '10.00 - 11.00',
+                'materials' => ['Sakit'],
+                'activities' => ['Sakit'],
+                'behavior' => ['Fokus' => 'Baik', 'Antusias' => 'Baik', 'Kemandirian' => 'Baik'],
+                'teacher_notes' => 'Sakit',
+                'attendance_status' => 'sakit',
+                'absence_reason' => 'Demam',
+            ]
+        );
+
+        DailyReport::firstOrCreate(
+            [
+                'child_id' => $rafa->id,
+                'report_date' => '2026-10-14',
+            ],
+            [
+                'teacher_id' => $teacherNisa->id,
+                'time_range' => '11.15 - 12.15',
+                'materials' => ['Mengenal huruf'],
+                'activities' => ['Mewarnai'],
+                'behavior' => [
+                    'Fokus' => 'Baik',
+                    'Antusias' => 'Baik',
+                    'Kemandirian' => 'Baik',
+                ],
+                'teacher_notes' => 'Rafa aktif di kelas.',
+                'attendance_status' => 'hadir',
+            ]
+        );
+
+        Invoice::firstOrCreate(
+            [
+                'child_id' => $aisyah->id,
+                'month_year' => '2026-10',
+            ],
+            [
+                'invoice_number' => 'INV-202610-001',
+                'amount' => 350000,
+                'breakdown' => [
+                    ['item' => 'SPP Bulan Oktober 2026', 'cost' => 300000],
+                    ['item' => 'Modul Belajar', 'cost' => 50000],
+                ],
+                'status' => 'paid',
+                'due_date' => '2026-10-10',
+                'paid_at' => '2026-10-05',
+                'payment_method' => 'BCA Virtual Account',
+            ]
+        );
+    }
+
+    public function test_public_home_renders_landing_page_instead_of_redirecting_to_login(): void
+    {
+        $response = $this->get('/');
+        $response->assertStatus(200);
+        $response->assertSee('Landing');
+        $response->assertSee('publicClasses');
+    }
+
+    public function test_admin_can_create_mengaji_class_with_days_start_time_and_end_time(): void
+    {
+        $admin = User::where('email', 'admin@sabilafun.id')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('classes.store'), [
+                'name' => 'Kelompok Mengaji Iqra Sore',
+                'category' => 'Mengaji',
+                'quota' => 12,
+                'days' => ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'],
+                'start_time' => '15:30',
+                'end_time' => '16:30',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('class_groups', [
+            'name' => 'Kelompok Mengaji Iqra Sore',
+            'category' => 'Mengaji',
+            'quota' => 12,
+            'schedule' => 'Senin - Minggu, 15.30 - 16.30',
+        ]);
     }
 
     public function test_login_screen_renders_and_authenticates_with_email_or_phone(): void
@@ -41,22 +282,84 @@ class SabilaFunLearningTest extends TestCase
         $loginByPhone->assertRedirect(route('dashboard'));
     }
 
-    public function test_quick_demo_login_works_for_all_roles(): void
+    public function test_admin_seed_account_can_login_with_email_and_phone(): void
     {
-        $this->post('/demo-login', ['role' => 'parent'])->assertRedirect(route('dashboard'));
+        $response = $this->post('/login', [
+            'identifier' => 'admin@sabilafun.id',
+            'password' => 'password123',
+        ]);
+        $response->assertRedirect(route('dashboard'));
         $this->assertAuthenticated();
-        $this->assertEquals('parent', auth()->user()->role);
+        $this->assertTrue(auth()->user()->isAdmin());
         $this->post('/logout');
 
-        $this->post('/demo-login', ['role' => 'teacher'])->assertRedirect(route('dashboard'));
+        $responsePhone = $this->post('/login', [
+            'identifier' => '081100001111',
+            'password' => 'password123',
+        ]);
+        $responsePhone->assertRedirect(route('dashboard'));
         $this->assertAuthenticated();
-        $this->assertEquals('teacher', auth()->user()->role);
         $this->post('/logout');
+    }
 
-        $this->post('/demo-login', ['role' => 'admin'])->assertRedirect(route('dashboard'));
-        $this->assertAuthenticated();
-        $this->assertEquals('admin', auth()->user()->role);
-        $this->post('/logout');
+    public function test_admin_can_delete_class_group_and_non_admin_is_forbidden(): void
+    {
+        $admin = User::where('email', 'admin@sabilafun.id')->firstOrFail();
+        $teacher = User::where('email', 'guru@sabilafun.id')->firstOrFail();
+        $classToDelete = ClassGroup::create([
+            'name' => 'Kelas Sementara',
+            'category' => 'Bermain & Belajar',
+            'quota' => 5,
+            'schedule' => 'Sabtu',
+        ]);
+
+        // Non-admin (teacher) cannot delete class
+        $this->actingAs($teacher)
+            ->delete(route('classes.destroy', $classToDelete->id))
+            ->assertStatus(403);
+
+        // Admin can delete class
+        $this->actingAs($admin)
+            ->delete(route('classes.destroy', $classToDelete->id))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('class_groups', ['id' => $classToDelete->id]);
+    }
+
+    public function test_user_can_update_account_profile_and_change_password(): void
+    {
+        $admin = User::where('email', 'admin@sabilafun.id')->firstOrFail();
+
+        // 1. Password change without matching current_password fails
+        $this->actingAs($admin)
+            ->patch(route('profile.account.update'), [
+                'name' => 'Admin Baru',
+                'email' => 'admin_baru@sabilafun.id',
+                'phone' => '081199990000',
+                'current_password' => 'salah123',
+                'password' => 'newpassword123',
+                'password_confirmation' => 'newpassword123',
+            ])
+            ->assertSessionHasErrors(['current_password']);
+
+        // 2. Successful update with valid current_password
+        $this->actingAs($admin)
+            ->patch(route('profile.account.update'), [
+                'name' => 'Admin Terupdate',
+                'email' => 'admin_baru@sabilafun.id',
+                'phone' => '081199990000',
+                'current_password' => 'password123',
+                'password' => 'newpassword123',
+                'password_confirmation' => 'newpassword123',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $admin->refresh();
+        $this->assertEquals('Admin Terupdate', $admin->name);
+        $this->assertEquals('admin_baru@sabilafun.id', $admin->email);
+        $this->assertEquals('081199990000', $admin->phone);
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('newpassword123', $admin->password));
     }
 
     public function test_all_ten_screens_render_for_authenticated_parent(): void
@@ -334,5 +637,38 @@ class SabilaFunLearningTest extends TestCase
             ->get('/laporan-bulanan?month=2026-10&child_id=' . $aisyah->id)
             ->assertStatus(200)
             ->assertSee('attendanceStats');
+    }
+
+    public function test_new_parent_can_register_with_gender_address_and_optional_photo(): void
+    {
+        $calistungA = ClassGroup::firstOrFail();
+
+        $response = $this->post('/register', [
+            'name' => 'Bunda Dian',
+            'email' => 'dian@example.com',
+            'phone' => '081299998888',
+            'address' => 'Jl. Kenanga No. 45, Jakarta Selatan',
+            'password' => 'secret123',
+            'child_name' => 'Fatih Rizqi',
+            'child_birth_date' => '2021-08-20',
+            'child_gender' => 'laki-laki',
+            'child_group' => $calistungA->name,
+        ]);
+
+        $response->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'dian@example.com',
+            'phone' => '081299998888',
+            'address' => 'Jl. Kenanga No. 45, Jakarta Selatan',
+            'role' => 'parent',
+        ]);
+
+        $child = Child::where('name', 'Fatih Rizqi')->first();
+        $this->assertNotNull($child);
+        $this->assertEquals('laki-laki', $child->gender);
+        $this->assertEquals('Jl. Kenanga No. 45, Jakarta Selatan', $child->address);
+        $this->assertEquals('pending', $child->enrollment_status);
+        $this->assertEquals('avatars/rafa.svg', $child->photo);
     }
 }

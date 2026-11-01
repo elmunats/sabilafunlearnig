@@ -242,10 +242,83 @@ Pastikan file `public_html/.htaccess` memiliki konfigurasi standar Laravel berik
 
 ---
 
-## 8. Checklist Pasca-Deployment
+## 8. Reset Data Bersih (Hanya Admin Tunggal)
 
-1. Buka `https://domain-anda.com/login` — pastikan **Logo Sabila Fun Learning** dan **Favicon** tampil dengan benar.
-2. Masuk menggunakan akun Admin (`admin@sabilafun.id` / `password123` — lihat [`DEMO.md`](./DEMO.md)), lalu segera ubah kata sandi atau tambahkan akun riil untuk penggunaan operasional.
-3. Uji unggah foto kegiatan di menu **Foto Kegiatan** untuk memastikan *Temporary Signed URL* (`/private-media/...`) berfungsi dengan baik.
-4. Uji pemasangan PWA di ponsel (**Add to Home Screen** di Chrome Android / Safari iOS).
+Jika Anda ingin mengosongkan seluruh data demo/dummy dan memulai aplikasi dari keadaan bersih dengan **hanya satu akun Administrator**:
+
+Jalankan perintah berikut di terminal server (atau via SSH):
+
+```bash
+cd /home/iskolaid/domains/sabilafunlearning.natsir.my.id/sabila_app
+
+# Reset seluruh tabel dan isi hanya role Spatie serta 1 akun Admin
+php artisan migrate:fresh --seed --force
+
+# Optimasi cache produksi
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+Akun login Administrator awal:
+- **Email**: `admin@sabilafun.id`
+- **Nomor HP**: `081100001111`
+- **Kata Sandi**: `password123`
+
+---
+
+## 9. CI/CD Auto-Deploy dari GitHub ke Server saat `git push`
+
+File pipeline GitHub Actions telah disiapkan di [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Setiap kali Anda melakukan `git push` ke branch `main` atau `master`, GitHub Actions akan:
+1. Menyiapkan PHP 8.2 & menginstal dependensi Composer (`composer install --no-dev --optimize-autoloader`).
+2. Menyiapkan Node.js 20 & mengompilasi aset frontend Vite (`npm ci && npm run build`), sehingga tidak akan terjadi error `Vite manifest not found` di server.
+3. Melakukan sinkronisasi file otomatis (`rsync` via SSH) ke folder aplikasi di hosting DirectAdmin.
+4. Menjalankan perintah pasca-deploy otomatis via SSH (`php artisan migrate --force`, `config:cache`, `route:cache`, `view:cache`).
+
+### Langkah Konfigurasi GitHub Repository Secrets:
+
+1. Buka repositori Anda di GitHub: `https://github.com/<username>/<repo>`
+2. Klik tab **Settings** > pilih **Secrets and variables** > pilih **Actions**.
+3. Klik tombol **New repository secret** untuk menambahkan secrets berikut:
+
+| Nama Secret | Contoh Nilai | Keterangan |
+|-------------|--------------|------------|
+| `SSH_HOST` | `sabilafunlearning.natsir.my.id` atau IP server | Host atau IP server DirectAdmin Anda |
+| `SSH_USER` | `iskolaid` | Username SSH hosting Anda |
+| `SSH_PORT` | `22` | Port SSH hosting (sesuaikan jika server memakai port khusus) |
+| `SSH_PRIVATE_KEY` | *(Teks private key SSH Anda)* | Private key lengkap mulai dari `-----BEGIN ...` sampai `-----END ...` |
+| `SERVER_APP_DIR` | `/home/iskolaid/domains/sabilafunlearning.natsir.my.id/sabila_app` | Path direktori root aplikasi di server hosting |
+
+### Memastikan Public Key Terpasang di Server:
+Pastikan public key pasangan dari `SSH_PRIVATE_KEY` sudah terdaftar di server hosting pada file `~/.ssh/authorized_keys`:
+
+```bash
+# Jalankan di terminal server hosting:
+cat >> ~/.ssh/authorized_keys << 'EOF'
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... user@domain
+EOF
+
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
+
+Setelah Secrets disimpan di GitHub, setiap kali Anda menjalankan:
+```bash
+git add .
+git commit -m "Update fitur"
+git push origin main
+```
+Pipeline deployment akan otomatis berjalan di tab **Actions** repositori GitHub Anda dan memperbarui server secara otomatis.
+
+---
+
+## 10. Fitur Baru yang Siap Digunakan
+
+1. **Hapus Kelompok Kelas (Admin)**:
+   - Admin dapat membuka menu **Kelas**, memilih kelas yang diinginkan, dan menekan tombol **Hapus Kelas**.
+   - Murid di dalam kelas akan otomatis dilepas status penempatan kelasnya tanpa menghapus data murid, dan relasi guru pengajar akan dilepas dengan aman.
+2. **Kelola Akun, Ubah Email & Ganti Kata Sandi (Semua Role)**:
+   - Admin, Guru, dan Orang Tua dapat membuka menu **Profil**, lalu menekan tombol **Ubah Profil Akun, Email & Kata Sandi**.
+   - Pengguna dapat memperbarui Nama Lengkap, Email Login, Nomor HP/WhatsApp, serta mengganti kata sandi dengan verifikasi kata sandi saat ini (*current password*).
 
