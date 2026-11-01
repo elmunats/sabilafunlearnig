@@ -38,6 +38,17 @@ class DatabaseSeeder extends Seeder
             ]
         );
         $admin->syncRoles([$adminRole]);
+
+        // 3. Default Class Groups
+        $defaultClasses = [
+            ['name' => 'Kelompok Calistung A', 'category' => 'Calistung', 'quota' => 8, 'schedule' => 'Senin - Jumat, 10.00 - 11.00'],
+            ['name' => 'Kelompok Calistung B', 'category' => 'Calistung', 'quota' => 8, 'schedule' => 'Senin - Jumat, 11.15 - 12.15'],
+            ['name' => 'Kelompok Pracalis', 'category' => 'Pracalis', 'quota' => 8, 'schedule' => 'Senin - Jumat, 08.30 - 09.30'],
+            ['name' => 'Kelompok Mengaji', 'category' => 'Mengaji', 'quota' => 10, 'schedule' => 'Senin - Jumat, 15.30 - 16.30'],
+        ];
+        foreach ($defaultClasses as $cls) {
+            ClassGroup::firstOrCreate(['name' => $cls['name']], $cls);
+        }
     }
 
     private function seedPrivateMediaAssets(): void
