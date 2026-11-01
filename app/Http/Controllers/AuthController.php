@@ -166,6 +166,7 @@ class AuthController extends Controller
             'name' => $validated['child_name'],
             'birth_date' => $validated['child_birth_date'],
             'gender' => $validated['child_gender'],
+            'phone' => $validated['phone'],
             'address' => $validated['address'],
             'group_name' => $classGroup?->name ?? $validated['child_group'],
             'enrollment_status' => 'pending',

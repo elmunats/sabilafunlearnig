@@ -249,6 +249,24 @@ function openChildModule(childId, destinationUrl) {
         }
     );
 }
+
+function deleteTeacher(teacher) {
+    if (confirm(`Apakah Anda yakin ingin menghapus akun guru ${teacher.name}? Guru ini akan dihapus dari seluruh kelas mengajar.`)) {
+        router.delete(`/teachers/${teacher.id}`, { preserveScroll: true });
+    }
+}
+
+function deleteChild(student) {
+    if (confirm(`Apakah Anda yakin ingin menghapus data murid ${student.name}? Seluruh riwayat presensi, laporan harian, bulanan, dan foto kegiatan anak ini akan ikut terhapus.`)) {
+        router.delete(`/children/${student.id}`, { preserveScroll: true });
+    }
+}
+
+function deleteParent(parent) {
+    if (confirm(`Apakah Anda yakin ingin menghapus akun orang tua ${parent.name}? Seluruh data murid yang terhubung ke orang tua ini juga akan ikut terhapus.`)) {
+        router.delete(`/parents/${parent.id}`, { preserveScroll: true });
+    }
+}
 </script>
 
 <template>
@@ -339,9 +357,17 @@ function openChildModule(childId, destinationUrl) {
                                 <button
                                     type="button"
                                     @click="handleApproval(child.id, 'rejected')"
-                                    class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition cursor-pointer"
+                                    class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold transition cursor-pointer"
                                 >
                                     Tolak
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="deleteChild(child)"
+                                    class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition cursor-pointer"
+                                    title="Hapus pendaftaran murid"
+                                >
+                                    Hapus
                                 </button>
                             </div>
                         </div>
@@ -534,13 +560,24 @@ function openChildModule(childId, destinationUrl) {
                                     </div>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    @click="openChildModule(student.id, '/profil')"
-                                    class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold shrink-0 cursor-pointer"
-                                >
-                                    Profil
-                                </button>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <button
+                                        type="button"
+                                        @click="openChildModule(student.id, '/profil')"
+                                        class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
+                                    >
+                                        Profil
+                                    </button>
+                                    <button
+                                        v-if="user?.is_admin"
+                                        type="button"
+                                        @click="deleteChild(student)"
+                                        class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold cursor-pointer transition"
+                                        title="Hapus Murid"
+                                    >
+                                        Hapus
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Teacher & Admin Quick Actions per Student (Feature #5 & #6: Admin has same features as Teacher) -->
@@ -620,15 +657,79 @@ function openChildModule(childId, destinationUrl) {
                             <span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold">
                                 {{ teacher.class_names.length }} Kelas
                             </span>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    @click="
+                                        attachClassForm.teacher_id = teacher.id;
+                                        showAttachClassModal = true;
+                                    "
+                                    class="text-[11px] font-bold text-[#2E6FBE] hover:underline cursor-pointer"
+                                >
+                                    + Tambah Kelas Mengajar
+                                </button>
+                                <span class="text-slate-300">|</span>
+                                <button
+                                    type="button"
+                                    @click="deleteTeacher(teacher)"
+                                    class="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
+                                    title="Hapus Guru"
+                                >
+                                    Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Admin Only: Daftar Orang Tua / Wali Siswa -->
+            <section v-if="user?.role === 'admin' && parentOptions.length" class="space-y-3 pt-2">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-extrabold text-slate-800">Daftar Orang Tua / Wali Siswa</h3>
+                        <p class="text-xs text-slate-500">
+                            Total {{ parentOptions.length }} akun orang tua terdaftar
+                        </p>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <div
+                        v-for="parent in parentOptions"
+                        :key="parent.id"
+                        class="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-between gap-3"
+                    >
+                        <div class="min-w-0">
+                            <p class="text-xs font-extrabold text-slate-800">{{ parent.name }}</p>
+                            <p class="text-[11px] text-slate-500">{{ parent.email }} • {{ parent.phone || 'Belum ada No. HP' }}</p>
+                            <p v-if="parent.address" class="text-[11px] text-slate-400 truncate mt-0.5 max-w-xs">
+                                📍 {{ parent.address }}
+                            </p>
+                            <div class="flex flex-wrap gap-1 mt-1.5">
+                                <span
+                                    v-for="(childName, idx) in parent.children_names"
+                                    :key="idx"
+                                    class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold"
+                                >
+                                    Anak: {{ childName }}
+                                </span>
+                                <span v-if="!parent.children_names.length" class="text-[11px] text-slate-400">
+                                    Belum ada murid terdaftar
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1.5 shrink-0">
+                            <span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold">
+                                {{ parent.children_count }} Anak
+                            </span>
                             <button
                                 type="button"
-                                @click="
-                                    attachClassForm.teacher_id = teacher.id;
-                                    showAttachClassModal = true;
-                                "
-                                class="text-[11px] font-bold text-[#2E6FBE] hover:underline cursor-pointer"
+                                @click="deleteParent(parent)"
+                                class="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
+                                title="Hapus Akun Orang Tua"
                             >
-                                + Tambah Kelas Mengajar
+                                Hapus Akun
                             </button>
                         </div>
                     </div>

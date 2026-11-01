@@ -41,8 +41,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/kelas/{classGroup}/quota', [ClassGroupController::class, 'updateQuota'])->name('classes.quota');
     Route::delete('/kelas/{classGroup}', [ClassGroupController::class, 'destroy'])->name('classes.destroy');
     Route::post('/kelas/{classGroup}/teachers', [ClassGroupController::class, 'syncTeachers'])->name('classes.teachers');
-    Route::post('/kelas/attach-teacher', [ClassGroupController::class, 'attachTeacherClass'])->name('classes.attach-teacher');
+    Route::post('/classes/attach-teacher', [ClassGroupController::class, 'attachTeacherClass'])->name('classes.attach-teacher');
     Route::post('/teachers', [ClassGroupController::class, 'storeTeacher'])->name('teachers.store');
+    Route::delete('/teachers/{teacher}', [ClassGroupController::class, 'destroyTeacher'])->name('teachers.destroy');
+    Route::delete('/children/{child}', [ClassGroupController::class, 'destroyChild'])->name('children.destroy');
+    Route::delete('/parents/{parent}', [ClassGroupController::class, 'destroyParent'])->name('parents.destroy');
 
     // 3. Laporan Harian & 4. Detail Kegiatan / Laporan + Foto
     Route::get('/laporan-harian', [DailyReportController::class, 'index'])->name('reports.daily');

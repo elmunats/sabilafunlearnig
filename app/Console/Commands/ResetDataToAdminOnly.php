@@ -88,3 +88,4 @@ class ResetDataToAdminOnly extends Command
         return self::SUCCESS;
     }
 }
+

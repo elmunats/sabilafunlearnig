@@ -21,7 +21,9 @@ const classGroups = computed(() => page.props.auth?.classGroups || []);
 const flashSuccess = computed(() => page.props.flash?.success);
 
 const showAccountModal = ref(false);
-const showAccountPassword = ref(false);
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 const showEditModal = ref(false);
 const showEnrollChildModal = ref(false);
 
@@ -41,6 +43,9 @@ function openAccountModal() {
     accountForm.current_password = '';
     accountForm.password = '';
     accountForm.password_confirmation = '';
+    showCurrentPassword.value = false;
+    showNewPassword.value = false;
+    showConfirmPassword.value = false;
     accountForm.clearErrors();
     showAccountModal.value = true;
 }
@@ -72,6 +77,7 @@ const enrollPhotoPreview = ref(null);
 const enrollForm = useForm({
     parent_id: props.parentOptions?.[0]?.id || '',
     name: '',
+    phone: '',
     class_group_id: classGroups.value[0]?.id || '',
     birth_date: '2022-06-15',
     gender: 'laki-laki',
@@ -142,6 +148,28 @@ function approveCurrentChild() {
 
 function switchChild(childId) {
     router.post(`/children/${childId}/select`, {}, { preserveScroll: true });
+}
+
+function deleteCurrentChild() {
+    if (!props.childProfile) return;
+    if (confirm(`Apakah Anda yakin ingin menghapus data murid ${props.childProfile.name}? Seluruh riwayat presensi, laporan, dan foto akan ikut terhapus.`)) {
+        router.delete(`/children/${props.childProfile.id}`, {
+            onSuccess: () => {
+                router.visit('/profil');
+            },
+        });
+    }
+}
+
+function deleteCurrentParent() {
+    if (!props.childProfile?.parent) return;
+    if (confirm(`Apakah Anda yakin ingin menghapus akun orang tua ${props.childProfile.parent.name}? Seluruh data murid yang terdaftar atas nama orang tua ini juga akan ikut terhapus.`)) {
+        router.delete(`/parents/${props.childProfile.parent.id}`, {
+            onSuccess: () => {
+                router.visit('/profil');
+            },
+        });
+    }
 }
 
 function logout() {
@@ -415,6 +443,28 @@ const roleBadge = computed(() => {
                             <span class="font-semibold text-slate-700 text-right">{{ childProfile.parent?.address }}</span>
                         </div>
                     </div>
+
+                    <!-- Admin Actions: Hapus Murid & Hapus Orang Tua -->
+                    <div v-if="user?.is_admin" class="pt-3 flex flex-col gap-2">
+                        <button
+                            type="button"
+                            @click="deleteCurrentChild"
+                            class="w-full py-2.5 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span>Hapus Data Murid ({{ childProfile.name }})</span>
+                        </button>
+                        <button
+                            v-if="childProfile.parent"
+                            type="button"
+                            @click="deleteCurrentParent"
+                            class="w-full py-2.5 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                            <span>Hapus Akun Orang Tua ({{ childProfile.parent.name }})</span>
+                        </button>
+                    </div>
                 </section>
             </div>
 
@@ -510,47 +560,90 @@ const roleBadge = computed(() => {
                             </p>
                         </div>
 
-                        <div class="space-y-2.5">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[11px] font-bold text-slate-600">Keamanan Kata Sandi</span>
-                                <button
-                                    type="button"
-                                    @click="showAccountPassword = !showAccountPassword"
-                                    class="text-[11px] font-bold text-[#2E6FBE] hover:underline cursor-pointer"
-                                >
-                                    {{ showAccountPassword ? 'Sembunyikan Sandi' : 'Lihat Sandi' }}
-                                </button>
-                            </div>
+                        <div class="space-y-3">
+                            <span class="text-[11px] font-bold text-slate-700 block">Ubah Kata Sandi (Opsional)</span>
+
+                            <!-- Kata Sandi Saat Ini -->
                             <div>
                                 <label class="font-semibold text-slate-700 block mb-1">Kata Sandi Saat Ini</label>
-                                <input
-                                    v-model="accountForm.current_password"
-                                    :type="showAccountPassword ? 'text' : 'password'"
-                                    placeholder="Wajib diisi jika mengubah sandi"
-                                    class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2E6FBE]"
-                                />
+                                <div class="relative flex items-center">
+                                    <input
+                                        v-model="accountForm.current_password"
+                                        :type="showCurrentPassword ? 'text' : 'password'"
+                                        placeholder="Wajib diisi jika mengubah sandi"
+                                        class="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2E6FBE]"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="showCurrentPassword = !showCurrentPassword"
+                                        class="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                                        :aria-label="showCurrentPassword ? 'Sembunyikan sandi saat ini' : 'Lihat sandi saat ini'"
+                                    >
+                                        <svg v-if="!showCurrentPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.5 10.677a2 2 0 002.823 2.823M7.362 7.561C5.68 8.74 4.279 10.42 3 12c1.889 2.991 5.282 6 9 6 1.55 0 3.043-.523 4.395-1.353m1.929-1.976C19.521 13.588 20.43 12.29 21 12c-1.889-2.991-5.282-6-9-6-.89 0-1.765.146-2.6.412" />
+                                        </svg>
+                                        <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    </button>
+                                </div>
                                 <p v-if="accountForm.errors.current_password" class="text-rose-500 text-[11px] mt-1">{{ accountForm.errors.current_password }}</p>
                             </div>
 
+                            <!-- Kata Sandi Baru -->
                             <div>
                                 <label class="font-semibold text-slate-700 block mb-1">Kata Sandi Baru</label>
-                                <input
-                                    v-model="accountForm.password"
-                                    :type="showAccountPassword ? 'text' : 'password'"
-                                    placeholder="Minimal 6 karakter"
-                                    class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2E6FBE]"
-                                />
+                                <div class="relative flex items-center">
+                                    <input
+                                        v-model="accountForm.password"
+                                        :type="showNewPassword ? 'text' : 'password'"
+                                        placeholder="Minimal 6 karakter"
+                                        class="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2E6FBE]"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="showNewPassword = !showNewPassword"
+                                        class="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                                        :aria-label="showNewPassword ? 'Sembunyikan sandi baru' : 'Lihat sandi baru'"
+                                    >
+                                        <svg v-if="!showNewPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.5 10.677a2 2 0 002.823 2.823M7.362 7.561C5.68 8.74 4.279 10.42 3 12c1.889 2.991 5.282 6 9 6 1.55 0 3.043-.523 4.395-1.353m1.929-1.976C19.521 13.588 20.43 12.29 21 12c-1.889-2.991-5.282-6-9-6-.89 0-1.765.146-2.6.412" />
+                                        </svg>
+                                        <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    </button>
+                                </div>
                                 <p v-if="accountForm.errors.password" class="text-rose-500 text-[11px] mt-1">{{ accountForm.errors.password }}</p>
                             </div>
 
+                            <!-- Konfirmasi Kata Sandi Baru -->
                             <div>
                                 <label class="font-semibold text-slate-700 block mb-1">Konfirmasi Kata Sandi Baru</label>
-                                <input
-                                    v-model="accountForm.password_confirmation"
-                                    :type="showAccountPassword ? 'text' : 'password'"
-                                    placeholder="Ulangi kata sandi baru"
-                                    class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2E6FBE]"
-                                />
+                                <div class="relative flex items-center">
+                                    <input
+                                        v-model="accountForm.password_confirmation"
+                                        :type="showConfirmPassword ? 'text' : 'password'"
+                                        placeholder="Ulangi kata sandi baru"
+                                        class="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2E6FBE]"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="showConfirmPassword = !showConfirmPassword"
+                                        class="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                                        :aria-label="showConfirmPassword ? 'Sembunyikan konfirmasi sandi' : 'Lihat konfirmasi sandi'"
+                                    >
+                                        <svg v-if="!showConfirmPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.5 10.677a2 2 0 002.823 2.823M7.362 7.561C5.68 8.74 4.279 10.42 3 12c1.889 2.991 5.282 6 9 6 1.55 0 3.043-.523 4.395-1.353m1.929-1.976C19.521 13.588 20.43 12.29 21 12c-1.889-2.991-5.282-6-9-6-.89 0-1.765.146-2.6.412" />
+                                        </svg>
+                                        <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -726,6 +819,17 @@ const roleBadge = computed(() => {
                     <div>
                         <label class="font-semibold text-slate-700 block mb-1">Tanggal Lahir</label>
                         <input v-model="enrollForm.birth_date" type="date" required class="w-full px-2.5 py-2 rounded-xl border border-slate-200" />
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Nomor HP / WhatsApp (Orang Tua / Wali)</label>
+                        <input
+                            v-model="enrollForm.phone"
+                            type="tel"
+                            placeholder="Contoh: 081234567890"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200"
+                        />
+                        <p v-if="enrollForm.errors.phone" class="text-rose-600 mt-1">{{ enrollForm.errors.phone }}</p>
                     </div>
 
                     <div>

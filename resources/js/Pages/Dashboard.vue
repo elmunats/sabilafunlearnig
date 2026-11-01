@@ -33,6 +33,7 @@ const enrollPhotoPreview = ref(null);
 
 const enrollForm = useForm({
     name: '',
+    phone: '',
     birth_date: '2022-08-15',
     gender: 'laki-laki',
     address: '',
@@ -661,6 +662,17 @@ function submitLeaveRequest() {
                             required
                             class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs"
                         />
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Nomor HP / WhatsApp (Orang Tua / Wali)</label>
+                        <input
+                            v-model="enrollForm.phone"
+                            type="tel"
+                            placeholder="Contoh: 081234567890"
+                            class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs"
+                        />
+                        <p v-if="enrollForm.errors.phone" class="text-rose-600 mt-1">{{ enrollForm.errors.phone }}</p>
                     </div>
 
                     <div>

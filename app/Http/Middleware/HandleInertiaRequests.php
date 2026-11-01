@@ -47,6 +47,7 @@ class HandleInertiaRequests extends Middleware
                 'status_label' => $c->status_label,
                 'birth_date' => $c->birth_date?->format('Y-m-d'),
                 'gender' => $c->gender,
+                'phone' => $c->phone ?? $c->parent?->phone,
                 'address' => $c->address ?? $c->parent?->address,
                 'join_date' => $c->join_date?->format('Y-m-d'),
                 'photo_url' => $c->photo_url,

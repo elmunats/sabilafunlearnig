@@ -77,9 +77,22 @@ class ClassGroupController extends Controller
             ->all();
 
         $parentOptions = User::where('role', 'parent')
-            ->select('id', 'name', 'email', 'phone')
+            ->withCount('children')
+            ->with('children:id,parent_id,name')
+            ->select('id', 'name', 'email', 'phone', 'address')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(fn (User $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'email' => $p->email,
+                'phone' => $p->phone ?? '-',
+                'address' => $p->address ?? '-',
+                'children_count' => $p->children_count,
+                'children_names' => $p->children->pluck('name')->values()->all(),
+            ])
+            ->values()
+            ->all();
 
         return Inertia::render('Classes/Index', [
             'myClasses' => $myClasses->map(fn (ClassGroup $cg) => $this->transformClassGroup($cg))->values()->all(),
@@ -115,6 +128,7 @@ class ClassGroupController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'birth_date' => ['required', 'date'],
             'gender' => ['nullable', 'string', 'in:laki-laki,perempuan,Laki-laki,Perempuan'],
+            'phone' => ['nullable', 'string', 'max:30'],
             'address' => ['nullable', 'string', 'max:500'],
             'class_group_id' => ['required', 'exists:class_groups,id'],
             'parent_id' => ['nullable', 'exists:users,id'],
@@ -153,6 +167,7 @@ class ClassGroupController extends Controller
             'photo' => $photoPath,
             'birth_date' => $validated['birth_date'],
             'gender' => $validated['gender'] ?? null,
+            'phone' => $validated['phone'] ?? ($user->phone ?? null),
             'address' => $validated['address'] ?? null,
             'group_name' => $classGroup->name,
             'enrollment_status' => $status,
@@ -469,6 +484,58 @@ class ClassGroupController extends Controller
         return back()->with('success', 'Guru baru (' . $teacher->name . ') berhasil ditambahkan dan di-mapping ke kelas.');
     }
 
+    public function destroyTeacher(Request $request, User $teacher): RedirectResponse
+    {
+        if (! $request->user()->isAdmin()) {
+            abort(403, 'Hanya Admin yang dapat menghapus data guru.');
+        }
+
+        if ($teacher->role !== 'teacher') {
+            return back()->with('error', 'Pengguna yang dipilih bukan guru.');
+        }
+
+        $teacherName = $teacher->name;
+        $teacher->teachingClasses()->detach();
+        $teacher->delete();
+
+        return back()->with('success', "Akun guru {$teacherName} berhasil dihapus dari sistem.");
+    }
+
+    public function destroyChild(Request $request, Child $child): RedirectResponse
+    {
+        if (! $request->user()->isAdmin()) {
+            abort(403, 'Hanya Admin yang dapat menghapus data murid.');
+        }
+
+        $childName = $child->name;
+        $activeChildId = $request->session()->get('active_child_id');
+        if ((int) $activeChildId === (int) $child->id) {
+            $request->session()->forget('active_child_id');
+        }
+
+        $child->delete();
+
+        return back()->with('success', "Data murid {$childName} beserta seluruh riwayatnya berhasil dihapus.");
+    }
+
+    public function destroyParent(Request $request, User $parent): RedirectResponse
+    {
+        if (! $request->user()->isAdmin()) {
+            abort(403, 'Hanya Admin yang dapat menghapus akun orang tua.');
+        }
+
+        if ($parent->role !== 'parent') {
+            return back()->with('error', 'Pengguna yang dipilih bukan orang tua.');
+        }
+
+        $parentName = $parent->name;
+        // Cascade delete children of this parent
+        $parent->children()->delete();
+        $parent->delete();
+
+        return back()->with('success', "Akun orang tua {$parentName} dan data anak terkait berhasil dihapus.");
+    }
+
     private function transformClassGroup(ClassGroup $cg): array
     {
         $approvedCount = $cg->approved_count ?? $cg->approvedChildren->count();
@@ -507,6 +574,7 @@ class ClassGroupController extends Controller
             'status_label' => $c->status_label,
             'birth_date' => $c->birth_date?->format('d M Y'),
             'gender' => $c->gender,
+            'phone' => $c->phone ?? $c->parent?->phone,
             'address' => $c->address ?? $c->parent?->address,
             'join_date' => $c->join_date?->format('d M Y'),
             'photo_url' => $c->photo_url,

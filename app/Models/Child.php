@@ -22,6 +22,7 @@ class Child extends Model
         'photo',
         'birth_date',
         'gender',
+        'phone',
         'address',
         'group_name',
         'enrollment_status',

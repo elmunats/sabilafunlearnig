@@ -671,4 +671,57 @@ class SabilaFunLearningTest extends TestCase
         $this->assertEquals('pending', $child->enrollment_status);
         $this->assertEquals('avatars/rafa.svg', $child->photo);
     }
+
+    public function test_admin_can_delete_teacher_student_and_parent_while_non_admin_is_forbidden(): void
+    {
+        $admin = User::where('email', 'admin@sabilafun.id')->firstOrFail();
+        $parent = User::where('email', 'siti@example.com')->firstOrFail();
+        $classGroup = ClassGroup::firstOrFail();
+
+        // Create dummy teacher, child, parent
+        $teacherToDelete = User::factory()->create([
+            'role' => 'teacher',
+            'email' => 'temp_teacher@sabilafun.id',
+        ]);
+        $parentToDelete = User::factory()->create([
+            'role' => 'parent',
+            'email' => 'temp_parent@sabilafun.id',
+        ]);
+        $childToDelete = Child::create([
+            'parent_id' => $parentToDelete->id,
+            'class_group_id' => $classGroup->id,
+            'group_name' => $classGroup->name,
+            'name' => 'Anak Hapus Test',
+            'birth_date' => '2022-01-01',
+            'join_date' => '2026-01-01',
+            'enrollment_status' => 'approved',
+        ]);
+
+        // Non-admin attempts deletion -> 403 Forbidden
+        $this->actingAs($parent)->delete("/teachers/{$teacherToDelete->id}")->assertStatus(403);
+        $this->actingAs($parent)->delete("/children/{$childToDelete->id}")->assertStatus(403);
+        $this->actingAs($parent)->delete("/parents/{$parentToDelete->id}")->assertStatus(403);
+
+        // Admin can delete teacher
+        $this->actingAs($admin)->delete("/teachers/{$teacherToDelete->id}")->assertRedirect();
+        $this->assertDatabaseMissing('users', ['id' => $teacherToDelete->id]);
+
+        // Admin can delete child
+        $this->actingAs($admin)->delete("/children/{$childToDelete->id}")->assertRedirect();
+        $this->assertDatabaseMissing('children', ['id' => $childToDelete->id]);
+
+        // Admin can delete parent (cascading children)
+        $childOfParent = Child::create([
+            'parent_id' => $parentToDelete->id,
+            'class_group_id' => $classGroup->id,
+            'group_name' => $classGroup->name,
+            'name' => 'Anak Cascade Test',
+            'birth_date' => '2022-02-02',
+            'join_date' => '2026-01-01',
+            'enrollment_status' => 'approved',
+        ]);
+        $this->actingAs($admin)->delete("/parents/{$parentToDelete->id}")->assertRedirect();
+        $this->assertDatabaseMissing('users', ['id' => $parentToDelete->id]);
+        $this->assertDatabaseMissing('children', ['id' => $childOfParent->id]);
+    }
 }
