@@ -527,8 +527,46 @@ class ClassGroupController extends Controller
         return back()->with('success', "Data murid {$childName} beserta seluruh riwayatnya berhasil dihapus.");
     }
 
-    public function destroyParent(Request $request, User $parent): RedirectResponse
+    public function updateParent(Request $request, $parent): RedirectResponse
     {
+        $parentModel = $parent instanceof User ? $parent : User::findOrFail($parent);
+
+        if (! $request->user()->isAdmin()) {
+            abort(403, 'Hanya Admin yang dapat mengubah data orang tua.');
+        }
+
+        if ($parentModel->role !== 'parent') {
+            return back()->with('error', 'Pengguna yang dipilih bukan orang tua.');
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:190', \Illuminate\Validation\Rule::unique('users', 'email')->ignore($parentModel->id)],
+            'phone' => ['required', 'string', 'max:30', \Illuminate\Validation\Rule::unique('users', 'phone')->ignore($parentModel->id)],
+            'address' => ['nullable', 'string', 'max:500'],
+            'password' => ['nullable', 'string', 'min:6'],
+        ], [
+            'email.unique' => 'Email ini sudah digunakan oleh akun lain.',
+            'phone.unique' => 'Nomor WhatsApp / HP ini sudah digunakan oleh akun lain.',
+            'password.min' => 'Kata sandi baru minimal 6 karakter.',
+        ]);
+
+        $parentModel->name = $validated['name'];
+        $parentModel->email = $validated['email'];
+        $parentModel->phone = $validated['phone'];
+        $parentModel->address = $validated['address'] ?? null;
+        if (! empty($validated['password'])) {
+            $parentModel->password = $validated['password'];
+        }
+        $parentModel->save();
+
+        return back()->with('success', "Data orang tua {$parentModel->name} berhasil diperbarui.");
+    }
+
+    public function destroyParent(Request $request, $parent): RedirectResponse
+    {
+        $parent = $parent instanceof User ? $parent : User::findOrFail($parent);
+
         if (! $request->user()->isAdmin()) {
             abort(403, 'Hanya Admin yang dapat menghapus akun orang tua.');
         }

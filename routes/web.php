@@ -45,6 +45,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/teachers', [ClassGroupController::class, 'storeTeacher'])->name('teachers.store');
     Route::delete('/teachers/{teacher}', [ClassGroupController::class, 'destroyTeacher'])->name('teachers.destroy');
     Route::delete('/children/{child}', [ClassGroupController::class, 'destroyChild'])->name('children.destroy');
+    Route::patch('/parents/{parent}', [ClassGroupController::class, 'updateParent'])->name('parents.update');
     Route::delete('/parents/{parent}', [ClassGroupController::class, 'destroyParent'])->name('parents.destroy');
 
     // 3. Laporan Harian & 4. Detail Kegiatan / Laporan + Foto

@@ -38,6 +38,8 @@ const showEditQuotaModal = ref(false);
 const showMappingModal = ref(false);
 const showAddTeacherModal = ref(false);
 const showAttachClassModal = ref(false);
+const showEditParentModal = ref(false);
+const showEditParentPassword = ref(false);
 
 // Track target class selection per pending child for Admin approval
 const approvalClassSelection = ref(
@@ -260,6 +262,37 @@ function deleteChild(student) {
     if (confirm(`Apakah Anda yakin ingin menghapus data murid ${student.name}? Seluruh riwayat presensi, laporan harian, bulanan, dan foto kegiatan anak ini akan ikut terhapus.`)) {
         router.delete(`/children/${student.id}`, { preserveScroll: true });
     }
+}
+
+const editParentForm = useForm({
+    id: null,
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    password: '',
+});
+
+function openEditParent(parent) {
+    editParentForm.id = parent.id;
+    editParentForm.name = parent.name;
+    editParentForm.email = parent.email;
+    editParentForm.phone = parent.phone || '';
+    editParentForm.address = parent.address || '';
+    editParentForm.password = '';
+    showEditParentPassword.value = false;
+    editParentForm.clearErrors();
+    showEditParentModal.value = true;
+}
+
+function submitEditParent() {
+    if (!editParentForm.id) return;
+    editParentForm.patch(`/parents/${editParentForm.id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            showEditParentModal.value = false;
+        },
+    });
 }
 
 function deleteParent(parent) {
@@ -723,14 +756,25 @@ function deleteParent(parent) {
                             <span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold">
                                 {{ parent.children_count }} Anak
                             </span>
-                            <button
-                                type="button"
-                                @click="deleteParent(parent)"
-                                class="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
-                                title="Hapus Akun Orang Tua"
-                            >
-                                Hapus Akun
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    @click="openEditParent(parent)"
+                                    class="text-[11px] font-bold text-[#2E6FBE] hover:underline cursor-pointer"
+                                    title="Edit Data Orang Tua"
+                                >
+                                    Edit
+                                </button>
+                                <span class="text-slate-300">|</span>
+                                <button
+                                    type="button"
+                                    @click="deleteParent(parent)"
+                                    class="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
+                                    title="Hapus Akun Orang Tua"
+                                >
+                                    Hapus Akun
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1152,6 +1196,121 @@ function deleteParent(parent) {
                         </button>
                         <button type="submit" :disabled="addTeacherForm.processing" class="px-4 py-2 rounded-xl bg-[#2E6FBE] text-white font-bold">
                             Simpan Guru
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal 5: Admin Edit Data Orang Tua / Wali Siswa -->
+        <div
+            v-if="showEditParentModal"
+            @click.self="showEditParentModal = false"
+            @keydown.esc="showEditParentModal = false"
+            class="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4 overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-parent-title"
+        >
+            <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-3.5 text-xs my-8">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div>
+                        <h2 id="edit-parent-title" class="text-base font-bold text-slate-800">
+                            Edit Data Orang Tua / Wali
+                        </h2>
+                        <p class="text-[11px] text-slate-500">Perbarui informasi kontak dan akun orang tua</p>
+                    </div>
+                    <button type="button" @click="showEditParentModal = false" class="w-8 h-8 rounded-full text-slate-400 hover:text-slate-600 flex items-center justify-center cursor-pointer">✕</button>
+                </div>
+                <form @submit.prevent="submitEditParent" class="space-y-3">
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Nama Orang Tua / Wali</label>
+                        <input
+                            v-model="editParentForm.name"
+                            type="text"
+                            required
+                            placeholder="Contoh: Fitri lestari"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#2E6FBE]"
+                        />
+                        <p v-if="editParentForm.errors.name" class="text-rose-500 text-[11px] mt-1">{{ editParentForm.errors.name }}</p>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Email Login</label>
+                        <input
+                            v-model="editParentForm.email"
+                            type="email"
+                            required
+                            placeholder="fitriles1997@gmail.com"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#2E6FBE]"
+                        />
+                        <p v-if="editParentForm.errors.email" class="text-rose-500 text-[11px] mt-1">{{ editParentForm.errors.email }}</p>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Nomor WhatsApp / HP</label>
+                        <input
+                            v-model="editParentForm.phone"
+                            type="tel"
+                            required
+                            placeholder="0821 2210 8610"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#2E6FBE]"
+                        />
+                        <p v-if="editParentForm.errors.phone" class="text-rose-500 text-[11px] mt-1">{{ editParentForm.errors.phone }}</p>
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Alamat Rumah Tempat Tinggal</label>
+                        <textarea
+                            v-model="editParentForm.address"
+                            rows="2"
+                            placeholder="Contoh: Perum Mega Mutiara Tasik Regency Blok Galunggung..."
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#2E6FBE]"
+                        ></textarea>
+                        <p v-if="editParentForm.errors.address" class="text-rose-500 text-[11px] mt-1">{{ editParentForm.errors.address }}</p>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100">
+                        <label class="font-semibold text-slate-700 block mb-1">Kata Sandi Baru (Opsional)</label>
+                        <div class="relative flex items-center">
+                            <input
+                                v-model="editParentForm.password"
+                                :type="showEditParentPassword ? 'text' : 'password'"
+                                placeholder="Kosongkan jika tidak ingin mengubah sandi"
+                                class="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#2E6FBE]"
+                            />
+                            <button
+                                type="button"
+                                @click="showEditParentPassword = !showEditParentPassword"
+                                class="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                                :aria-label="showEditParentPassword ? 'Sembunyikan sandi' : 'Lihat sandi'"
+                            >
+                                <svg v-if="!showEditParentPassword" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.5 10.677a2 2 0 002.823 2.823M7.362 7.561C5.68 8.74 4.279 10.42 3 12c1.889 2.991 5.282 6 9 6 1.55 0 3.043-.523 4.395-1.353m1.929-1.976C19.521 13.588 20.43 12.29 21 12c-1.889-2.991-5.282-6-9-6-.89 0-1.765.146-2.6.412" />
+                                </svg>
+                                <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </div>
+                        <p v-if="editParentForm.errors.password" class="text-rose-500 text-[11px] mt-1">{{ editParentForm.errors.password }}</p>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button
+                            type="button"
+                            @click="showEditParentModal = false"
+                            class="px-4 py-2 rounded-xl border border-slate-200 font-semibold text-slate-600 cursor-pointer"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="editParentForm.processing"
+                            class="px-4 py-2 rounded-xl bg-[#2E6FBE] text-white font-bold cursor-pointer disabled:opacity-50"
+                        >
+                            {{ editParentForm.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}
                         </button>
                     </div>
                 </form>

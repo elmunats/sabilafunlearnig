@@ -724,4 +724,43 @@ class SabilaFunLearningTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $parentToDelete->id]);
         $this->assertDatabaseMissing('children', ['id' => $childOfParent->id]);
     }
+
+    public function test_admin_can_update_parent_details_and_non_admin_is_forbidden(): void
+    {
+        $admin = User::where('email', 'admin@sabilafun.id')->firstOrFail();
+        $parent = User::where('email', 'siti@example.com')->firstOrFail();
+
+        $targetParent = User::factory()->create([
+            'name' => 'Bunda Asli',
+            'email' => 'bunda_asli@example.com',
+            'phone' => '081211112222',
+            'role' => 'parent',
+            'address' => 'Alamat Asli',
+        ]);
+
+        // Non-admin cannot update parent
+        $this->actingAs($parent)->patch("/parents/{$targetParent->id}", [
+            'name' => 'Bunda Palsu',
+            'email' => 'bunda_palsu@example.com',
+            'phone' => '081299990000',
+        ])->assertStatus(403);
+
+        // Admin can update parent
+        $response = $this->actingAs($admin)->patch("/parents/{$targetParent->id}", [
+            'name' => 'Bunda Diperbarui',
+            'email' => 'bunda_baru@example.com',
+            'phone' => '081277778888',
+            'address' => 'Perum Baru No 10',
+        ]);
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('users', [
+            'id' => $targetParent->id,
+            'name' => 'Bunda Diperbarui',
+            'email' => 'bunda_baru@example.com',
+            'phone' => '081277778888',
+            'address' => 'Perum Baru No 10',
+        ]);
+    }
 }
