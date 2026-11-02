@@ -160,19 +160,24 @@ class AuthController extends Controller
             $photoPath = PrivateMediaService::store($request->file('child_photo'), 'avatars');
         }
 
-        $child = Child::create([
+        $childData = [
             'parent_id' => $user->id,
             'class_group_id' => $classGroup?->id,
             'name' => $validated['child_name'],
             'birth_date' => $validated['child_birth_date'],
             'gender' => $validated['child_gender'],
-            'phone' => $validated['phone'],
             'address' => $validated['address'],
             'group_name' => $classGroup?->name ?? $validated['child_group'],
             'enrollment_status' => 'pending',
             'join_date' => now()->toDateString(),
             'photo' => $photoPath,
-        ]);
+        ];
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('children', 'phone')) {
+            $childData['phone'] = $validated['phone'];
+        }
+
+        $child = Child::create($childData);
 
         Auth::login($user);
         $request->session()->regenerate();

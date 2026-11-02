@@ -160,20 +160,29 @@ class ClassGroupController extends Controller
 
         $status = $isDirectAdminApprove ? 'approved' : 'pending';
 
-        $child = Child::create([
+        $childData = [
             'parent_id' => $targetParentId,
             'class_group_id' => $classGroup->id,
             'name' => $validated['name'],
             'photo' => $photoPath,
             'birth_date' => $validated['birth_date'],
-            'gender' => $validated['gender'] ?? null,
-            'phone' => $validated['phone'] ?? ($user->phone ?? null),
-            'address' => $validated['address'] ?? null,
             'group_name' => $classGroup->name,
             'enrollment_status' => $status,
             'approved_at' => $status === 'approved' ? now() : null,
             'join_date' => now()->toDateString(),
-        ]);
+        ];
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('children', 'gender') && isset($validated['gender'])) {
+            $childData['gender'] = $validated['gender'];
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('children', 'phone')) {
+            $childData['phone'] = $validated['phone'] ?? ($user->phone ?? null);
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('children', 'address') && isset($validated['address'])) {
+            $childData['address'] = $validated['address'];
+        }
+
+        $child = Child::create($childData);
 
         $request->session()->put('active_child_id', $child->id);
 

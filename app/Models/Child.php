@@ -39,6 +39,17 @@ class Child extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (Child $child) {
+            foreach (['phone', 'gender', 'address'] as $col) {
+                if (array_key_exists($col, $child->attributes) && ! \Illuminate\Support\Facades\Schema::hasColumn('children', $col)) {
+                    unset($child->attributes[$col]);
+                }
+            }
+        });
+    }
+
     /**
      * Scope query strictly to children accessible by the given user (Row-Level Security).
      */
